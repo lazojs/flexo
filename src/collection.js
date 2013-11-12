@@ -1,3 +1,3 @@
-var Collection = Base.extend({
+var Collection = View.extend({
 
 });

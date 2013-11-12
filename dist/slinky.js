@@ -7,6 +7,7 @@ var slinky = (function (global, Backbone, _) {
         isServer: false
     };
     var noop = function () {};
+    var defaultCallback = function () {};
     
     try {
         window;
@@ -21,7 +22,7 @@ var slinky = (function (global, Backbone, _) {
         Backbone.View.prototype.undelegateEvents = noop;
     }
 
-    var Base = Backbone.View.extend({
+    var View = Backbone.View.extend({
     
         constructor: function (options) {
             this.isServer = slinky.isServer;
@@ -32,18 +33,20 @@ var slinky = (function (global, Backbone, _) {
         },
     
         render: function (callback) {
+            var self = this;
+            callback = callback || defaultCallback;
             if (this.isServer) {
                 return callback('');
             }
     
             this.getInnerHtml(function (html) {
-                this.$el.html(html);
+                self.$el.html(html);
                 callback(html);
             });
         },
     
-        attach: function () {
-            this.trigger('attach');
+        attach: function (el) {
+            this.setElement(el);
             this.onAttach();
         },
     
@@ -55,17 +58,22 @@ var slinky = (function (global, Backbone, _) {
     
         remove: function () {
             Backbone.View.prototype.remove.call(this);
-            this.trigger('remove');
             this.onRemove();
             return this;
         },
     
         getHtml: function (callback) {
-            return this._wrapperEl(this.getInnerHtml(callback));
+            var self = this;
+            callback = callback || defaultCallback;
+    
+            this.getInnerHtml(function (innerHtml) {
+                callback(self._wrapperEl(innerHtml));
+            });
         },
     
         getInnerHtml: function (callback) {
             var self = this;
+            callback = callback || defaultCallback;
     
             this.getRenderer(function (renderer) {
                 self.serializeData(function (data) {
@@ -75,8 +83,9 @@ var slinky = (function (global, Backbone, _) {
         },
     
         getRenderer: function (callback) {
+            callback = callback || defaultCallback;
             if (this.renderer) {
-                callback(renderer);
+                callback(this.renderer);
             }
     
             var self = this;
@@ -93,16 +102,19 @@ var slinky = (function (global, Backbone, _) {
         },
     
         getRenderingEngine: function (callback) {
+            callback = callback || defaultCallback;
             callback(_.template);
         },
     
         serializeData: function (callback) {
+            callback = callback || defaultCallback;
             this.transformData(data, function (data) {
                 callback(data);
             });
         },
     
         transformData: function (data, callback) {
+            callback = callback || defaultCallback;
             return callback(data);
         },
     
@@ -135,9 +147,9 @@ var slinky = (function (global, Backbone, _) {
         }
     
     });
-    slinky.Base = Base;
+    slinky.View = View;
 
-    var Collection = Base.extend({
+    var Collection = View.extend({
     
     });
     slinky.Collection = Collection;

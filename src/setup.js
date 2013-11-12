@@ -3,6 +3,7 @@ var slinky = {
     isServer: false
 };
 var noop = function () {};
+var defaultCallback = function () {};
 
 try {
     window;

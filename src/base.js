@@ -1,4 +1,4 @@
-var Base = Backbone.View.extend({
+var View = Backbone.View.extend({
 
     constructor: function (options) {
         this.isServer = slinky.isServer;
@@ -9,18 +9,20 @@ var Base = Backbone.View.extend({
     },
 
     render: function (callback) {
+        var self = this;
+        callback = callback || defaultCallback;
         if (this.isServer) {
             return callback('');
         }
 
         this.getInnerHtml(function (html) {
-            this.$el.html(html);
+            self.$el.html(html);
             callback(html);
         });
     },
 
-    attach: function () {
-        this.trigger('attach');
+    attach: function (el) {
+        this.setElement(el);
         this.onAttach();
     },
 
@@ -31,18 +33,23 @@ var Base = Backbone.View.extend({
     onAttach: function () {},
 
     remove: function () {
-        Backbone.View.prototype.remove.call(this);
-        this.trigger('remove');
         this.onRemove();
+        Backbone.View.prototype.remove.call(this);
         return this;
     },
 
     getHtml: function (callback) {
-        return this._wrapperEl(this.getInnerHtml(callback));
+        var self = this;
+        callback = callback || defaultCallback;
+
+        this.getInnerHtml(function (innerHtml) {
+            callback(self._wrapperEl(innerHtml));
+        });
     },
 
     getInnerHtml: function (callback) {
         var self = this;
+        callback = callback || defaultCallback;
 
         this.getRenderer(function (renderer) {
             self.serializeData(function (data) {
@@ -52,8 +59,9 @@ var Base = Backbone.View.extend({
     },
 
     getRenderer: function (callback) {
+        callback = callback || defaultCallback;
         if (this.renderer) {
-            callback(renderer);
+            callback(this.renderer);
         }
 
         var self = this;
@@ -70,16 +78,19 @@ var Base = Backbone.View.extend({
     },
 
     getRenderingEngine: function (callback) {
+        callback = callback || defaultCallback;
         callback(_.template);
     },
 
     serializeData: function (callback) {
+        callback = callback || defaultCallback;
         this.transformData(data, function (data) {
             callback(data);
         });
     },
 
     transformData: function (data, callback) {
+        callback = callback || defaultCallback;
         return callback(data);
     },
 

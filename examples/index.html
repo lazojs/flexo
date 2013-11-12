@@ -9,9 +9,35 @@
     <script type="text/javascript" src="../dist/slinky.js"></script>
     <script type="text/javascript">
         $(function () {
-            var MyView = slinky.Base.extend({
+            var MyView = slinky.View.extend({
+
+                attributes: {
+                    'style': 'background: #ccc;'
+                },
+
+                template: 'Hi! My name is <%=fname%> <%=lname%>',
+
+                serializeData: function (callback) {
+                    callback({ fname: 'Jason', lname: 'Strimpel' })
+                },
+
+                onAttach: function () {
+                    var self = this;
+                    this.render();
+                },
+
+                onRemove: function () {
+                    console.log('you are outa here!');
+                }
 
             });
+
+            var myView = new MyView();
+
+            myView.attach($('body'));
+            setTimeout(function () {
+                myView.remove();
+            }, 1500);
         });
     </script>
 </head>

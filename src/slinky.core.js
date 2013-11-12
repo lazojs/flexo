@@ -5,7 +5,7 @@ var slinky = (function (global, Backbone, _) {
     // @include setup.js
 
     // @include base.js
-    slinky.Base = Base;
+    slinky.View = View;
 
     // @include collection.js
     slinky.Collection = Collection;
