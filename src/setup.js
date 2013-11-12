@@ -2,8 +2,13 @@ var slinky = {
     isClient: false,
     isServer: false
 };
-var noop = function () {};
-var defaultCallback = function () {};
+
+function noop() {}
+function defaultCallback() {}
+function getInsertIndex(attr, val, html) {
+    var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
+    return html.match(regex);
+}
 
 try {
     window;

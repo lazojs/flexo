@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html lang="en_US">
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="../lib/jquery.js"></script>
+    <script type="text/javascript" src="../lib/underscore.js"></script>
+    <script type="text/javascript" src="../lib/backbone.js"></script>
+    <script type="text/javascript" src="../dist/slinky.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            var MyView = slinky.CollectionView.extend({
+
+                attributes: {
+                    'style': 'background: #ccc;'
+                },
+
+                template: '<ul slinky-collection="foo"></ul>Hi! My name is <%=fname%> <%=lname%>.<ul slinky-collection="bar"></ul>',
+
+                serializeData: function (callback) {
+                    callback({ fname: 'Jason', lname: 'Strimpel' })
+                }
+
+            });
+
+            var myView = new MyView();
+            myView.getHtml(function (html) {
+                console.log(html);
+            });
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>

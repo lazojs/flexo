@@ -83,6 +83,7 @@ var View = Backbone.View.extend({
     },
 
     serializeData: function (callback) {
+        var data = this.model ? this.model.toJSON() : {};
         callback = callback || defaultCallback;
         this.transformData(data, function (data) {
             callback(data);

@@ -8,7 +8,7 @@ var slinky = (function (global, Backbone, _) {
     slinky.View = View;
 
     // @include collection.js
-    slinky.Collection = Collection;
+    slinky.CollectionView = CollectionView;
 
     return slinky;
 
