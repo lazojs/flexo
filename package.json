@@ -1,0 +1,52 @@
+{
+  "name": "slinky",
+  "description": "client-server backbone views with async rednering life cycles",
+  "version": "0.0.1",
+  "main": "dist/slinky.js",
+  "private": true,
+  "keywords": [
+    "views",
+    "client",
+    "server",
+    "async",
+    "backbone"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jstrimpel/slinky/blob/master/license.txt"
+    }
+  ],
+  "author": {
+    "name": "Jason Strimpel",
+    "email": "jstrimpel@gmail.com"
+  },
+  "bugs": {
+    "web": "https://github.com/jstrimpel/slinky/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jstrimpel/slinky.git"
+  },
+  "github": "https://github.com/jstrimpel/slinky",
+  "devDependencies": {
+    "grunt": "~0.4.0",
+    "grunt-preprocess": "3.0.1"
+  },
+  "volo": {
+    "url": "https://raw.github.com/jstrimpel/slinky/master/dist/slinky.js"
+  },
+  "jam": {
+    "main": "slinky.js",
+    "include": [
+      "slinky.js",
+      "readme.md"
+    ]
+  },
+  "maintainers": [
+    {
+      "name": "Jason Strimpel",
+      "email": "jstrimpel@gmail.com"
+    }
+  ]
+}

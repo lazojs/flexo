@@ -1,0 +1,3 @@
+var Collection = Base.extend({
+
+});
