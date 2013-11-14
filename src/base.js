@@ -1,6 +1,8 @@
 var View = Backbone.View.extend({
 
     constructor: function (options) {
+        options || (options = {});
+        _.extend(this, options);
         this.isServer = slinky.isServer;
         this.isClient = slinky.isClient;
         this._ensureElement();

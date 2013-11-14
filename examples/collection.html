@@ -9,16 +9,49 @@
     <script type="text/javascript" src="../dist/slinky.js"></script>
     <script type="text/javascript">
         $(function () {
+
+            var ItemView = slinky.View.extend({
+
+                tagName: 'li',
+
+                serializeData: function (callback) {
+                    callback(this.model.toJSON())
+                },
+
+                template: '<%=name%>'
+
+            });
+
             var MyView = slinky.CollectionView.extend({
 
                 attributes: {
                     'style': 'background: #ccc;'
                 },
 
-                template: '<ul slinky-collection="foo"></ul>Hi! My name is <%=fname%> <%=lname%>.<ul slinky-collection="bar"></ul>',
+                template: '<ul slinky-collection="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul slinky-collection="bar"></ul>',
 
                 serializeData: function (callback) {
                     callback({ fname: 'Jason', lname: 'Strimpel' })
+                },
+
+                itemViews: {
+                    foo: ItemView,
+                    bar: ItemView
+                },
+
+                collections: {
+
+                    foo: new Backbone.Collection([
+                        { name: 'Roger' },
+                        { name: 'Steve' },
+                        { name: 'Stan' }
+                    ]),
+
+                    bar: new Backbone.Collection([
+                        { name: 'Brian' },
+                        { name: 'Peter' },
+                        { name: 'Chris' }
+                    ])
                 }
 
             });

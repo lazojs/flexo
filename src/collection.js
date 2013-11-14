@@ -2,17 +2,17 @@ var CollectionView = View.extend({
 
     _isEmptyViewShown: [],
 
+    _collections: [],
+
     _itemViews: {},
 
     _emptyViews: {},
 
     constructor: function (options) {
-        options || (options = {});
-        this.collections = this.collections || options.collections;
-        this.collection = this.collection || options.collection;
         View.call(this, options);
-        this.itemViewOptions = options.itemViewOptions || this.itemViewOptions;
-        this.itemViewOptions = this.itemViewOptions || {};
+        this.collections || (this.collections = {});
+        this.collection || (this.collection = {});
+        this.itemViewOptions || (this.itemViewOptions = {});
         return this;
     },
 
@@ -40,24 +40,47 @@ var CollectionView = View.extend({
     resolveCollection: function (name, callback) {
         try {
             var collection = this.collections[name];
-            callback(this.collections[name]);
+            callback(collection);
         } catch (e) {
             callback(new Backbone.Collection());
         }
     },
 
-    getItemView: function (model, callback) {
-        var View = slinky.View.extend({
-            template: ''
-        });
-        callback(new View({}));
+    getItemView: function (model, collection, callback) {
+        try {
+            var View = this.itemViews[this._findCollection(collection).name];
+        } catch (e) {
+            var View = slinky.View.extend({
+                template: ''
+            });
+        }
+        callback(View);
     },
 
     getEmptyView: function (collection, callback) {
         var View = slinky.View.extend({
             template: ''
         });
-        callback(new View({}));
+        callback(View);
+    },
+
+    _addCollection: function (name, collection) {
+        if (!this._findCollection(collection)) {
+            this._collections.push({ name: name, collection: collection });
+        }
+    },
+
+    _findCollection: function (collection) {
+        var i = this._collections.length;
+
+        while (i) {
+            i--;
+            if (this._collections[i].collection === collection) {
+                return this._collections[i];
+            }
+        }
+
+        return null;
     },
 
     _getCollectionHtml: function (html, callback) {
@@ -80,6 +103,7 @@ var CollectionView = View.extend({
             for (var i = 0; i < collectionNames.length; i++) {
                 (function (i) {
                     self.getCollection(collectionNames[i], function (collection) {
+                        self._addCollection(collectionNames[i], collection);
                         self._getItemViewsHtml(collection, function (itemViewsHtml) {
                             collectionHtml[collectionNames[i]] = itemViewsHtml;
                             isDone();
@@ -128,7 +152,7 @@ var CollectionView = View.extend({
         }
 
         if (!collection.length) {
-            this._getEmptyViewInstance(collection, function (emptyView) {
+            this._getEmptyViewInstance(null, collection, function (emptyView) {
                 self._setEmptyViewStatus(null, collection, true);
                 if (emptyView) {
                     emptyView.getHtml(function (html) {
@@ -141,18 +165,32 @@ var CollectionView = View.extend({
         } else {
             self._setEmptyViewStatus(collection, false);
             collection.each(function (model) {
-                self._getEmptyViewInstance(model, collection).getHtml(function (itemViewHtml) {
-                    html += itemViewHtml;
+                self._getEmptyViewInstance(model, collection, function (itemView) {
+                    itemView.getHtml(function (itemViewHtml) {
+                        html += itemViewHtml;
+                        isDone();
+                    });
                 });
             });
         }
     },
 
+    _getItemViewOptions: function (options) {
+        options || (options = {});
+        return _.extend(options, this.itemViewOptions);
+    },
+
     _getEmptyViewInstance: function (model, collection, callback) {
+        var self = this;
+
         if (model) {
-            this.getItemView(model, collection, callback);
+            this.getItemView(model, collection, function (ItemView) {
+                callback(new ItemView(self._getItemViewOptions({ model: model })));
+            });
         } else {
-            this.getEmptyView(collection, callback);
+            this.getEmptyView(collection, function (EmptyView) {
+                callback(new EmptyView(self._getItemViewOptions()));
+            });
         }
     },
 
