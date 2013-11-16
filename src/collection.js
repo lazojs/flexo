@@ -123,6 +123,17 @@ var CollectionView = View.extend({
         }
     },
 
+    attach: function () {
+        slinky.View.prototype.call(this);
+        this.attachItemViews();
+    },
+
+    attachItemViews: function () {
+        for (var k in this._itemViews) {
+            this._itemViews[k].attach();
+        }
+    },
+
     _listenToCollection: function (collection) {
         this.listenTo(collection, 'add', this._collectionAdd, this);
         this.listenTo(collection, 'remove', this._collectionRemove, this);
@@ -266,7 +277,7 @@ var CollectionView = View.extend({
 
         if (!collection.length) {
             this._getEmptyItemViewInstance(null, collection, function (emptyView) {
-                self._setEmptyViewStatus(null, collection, true);
+                self._setEmptyViewStatus(collection, true);
                 if (emptyView) {
                     emptyView.getHtml(function (html) {
                         callback(html);

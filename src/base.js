@@ -5,6 +5,7 @@ var View = Backbone.View.extend({
         _.extend(this, options);
         this.isServer = slinky.isServer;
         this.isClient = slinky.isClient;
+        this.cid = _.uniqueId('view');
         this._ensureElement();
         this.initialize.apply(this, arguments);
         this.delegateEvents();
@@ -23,8 +24,8 @@ var View = Backbone.View.extend({
         });
     },
 
-    attach: function (el) {
-        this.setElement(el);
+    attach: function () {
+        this.setElement($('[slinky-view="' + this.cid + '"]')[0]);
         this.onAttach();
     },
 
@@ -97,6 +98,12 @@ var View = Backbone.View.extend({
         return callback(data);
     },
 
+    setElement: function () { // set view el attributes after bb.prototype.setElement is called
+        var response = Backbone.View.prototype.setElement.apply(this, arguments);
+        this._setElAttributes(_.extend(this._getAttributes(), this._getSlinkyAttributes()));
+        return response;
+    },
+
     _wrapperEl: function (html) {
         var elHtmlOpen;
         var elHtmlClose;
@@ -113,8 +120,15 @@ var View = Backbone.View.extend({
         return elHtmlOpen + html + elHtmlClose;
     },
 
+    _setElAttributes: function (attrs) {
+        if (!this.isServer) {
+            this.$el.attr(attrs);
+        }
+    },
+
     _getAttributes: function () {
-        var attrs = _.result(this, 'attributes');
+        var attrs = _.extend({}, _.result(this, 'attributes'));
+
         if (this.id) {
             attrs.id = _.result(this, 'id');
         }
@@ -122,7 +136,13 @@ var View = Backbone.View.extend({
             attrs['class'] = _.result(this, 'className');
         }
 
-        return attrs;
+        return _.extend(attrs, this._getSlinkyAttributes());
+    },
+
+    _getSlinkyAttributes: function () {
+        return {
+            'slinky-view': this.cid
+        };
     }
 
 });

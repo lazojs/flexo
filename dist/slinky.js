@@ -34,6 +34,7 @@ var slinky = (function (global, Backbone, _) {
             _.extend(this, options);
             this.isServer = slinky.isServer;
             this.isClient = slinky.isClient;
+            this.cid = _.uniqueId('view');
             this._ensureElement();
             this.initialize.apply(this, arguments);
             this.delegateEvents();
@@ -52,8 +53,8 @@ var slinky = (function (global, Backbone, _) {
             });
         },
     
-        attach: function (el) {
-            this.setElement(el);
+        attach: function () {
+            this.setElement($('[slinky-view="' + this.cid + '"]')[0]);
             this.onAttach();
         },
     
@@ -126,6 +127,12 @@ var slinky = (function (global, Backbone, _) {
             return callback(data);
         },
     
+        setElement: function () { // set view el attributes after bb.prototype.setElement is called
+            var response = Backbone.View.prototype.setElement.apply(this, arguments);
+            this._setElAttributes(_.extend(this._getAttributes(), this._getSlinkyAttributes()));
+            return response;
+        },
+    
         _wrapperEl: function (html) {
             var elHtmlOpen;
             var elHtmlClose;
@@ -142,8 +149,15 @@ var slinky = (function (global, Backbone, _) {
             return elHtmlOpen + html + elHtmlClose;
         },
     
+        _setElAttributes: function (attrs) {
+            if (!this.isServer) {
+                this.$el.attr(attrs);
+            }
+        },
+    
         _getAttributes: function () {
-            var attrs = _.result(this, 'attributes');
+            var attrs = _.extend({}, _.result(this, 'attributes'));
+    
             if (this.id) {
                 attrs.id = _.result(this, 'id');
             }
@@ -151,7 +165,13 @@ var slinky = (function (global, Backbone, _) {
                 attrs['class'] = _.result(this, 'className');
             }
     
-            return attrs;
+            return _.extend(attrs, this._getSlinkyAttributes());
+        },
+    
+        _getSlinkyAttributes: function () {
+            return {
+                'slinky-view': this.cid
+            };
         }
     
     });
@@ -159,13 +179,9 @@ var slinky = (function (global, Backbone, _) {
 
     var CollectionView = View.extend({
     
-        _isEmptyViewShown: [],
-    
         _collections: [],
     
         _itemViews: {},
-    
-        _emptyViews: {},
     
         constructor: function (options) {
             View.call(this, options);
@@ -205,15 +221,16 @@ var slinky = (function (global, Backbone, _) {
             }
         },
     
-        getItemView: function (model, collection, callback) {
+        getItemView: function (model, collection, callback) { // TODO: throw error if view not found
             try {
                 var View = this.itemViews[this._findCollection(collection).name];
             } catch (e) {
                 var View = slinky.View.extend({
                     template: ''
                 });
+            } finally {
+                callback(View);
             }
-            callback(View);
         },
     
         getEmptyView: function (collection, callback) {
@@ -221,6 +238,133 @@ var slinky = (function (global, Backbone, _) {
                 template: ''
             });
             callback(View);
+        },
+    
+        addItemView: function ($target, view, callback) {
+            $target.append(view);
+            callback();
+        },
+    
+        addEmptyView: function ($target, view, callback) {
+            $target.append(view);
+            callback();
+        },
+    
+        removeEmptyView: function ($target, view, callback) {
+            view.remove();
+            callback();
+        },
+    
+        removeItemView: function ($target, view, callback) {
+            view.remove();
+            callback();
+        },
+    
+        renderCollection: function (collection, callback) {
+            var collections = !_.isFunction(collection) ? [this._findCollection(collection)] : this._collections;
+            var length = collections.length;
+            var $target;
+            var itemViewsToBeAdded = _.reduce(collections, function (memo, collection) { return memo + collection.length; }, 0);
+            var itemViewsAdded = 0;
+            var self = this;
+    
+            callback = _.isFunction(collection) ? collection : callback;
+            callback = callback || defaultCallback;
+    
+            function isDone() {
+                itemViewsAdded++;
+                if (itemViewsToBeAdded === itemViewsAdded) {
+                    callback(); // TODO: trigger collection render
+                }
+            }
+    
+            for (var i = 0; i < length; i++) {
+                (function (i) {
+                    $target = this.$('[slinky-collection="' + collections[i].name + '"]');
+                    if (collections[i].length) {
+                        collections[i].each(function (model) {
+                            self.this._addItemView(model, collections[i], isDone);
+                        });
+                    } else { // empty view
+                        this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                            if (emptyView) {
+                                emptyView.render(function () {
+                                    self.addEmptyView($target, view, function () { // TODO: trigger add empty view
+                                        callback(); // TODO: trigger collection render
+                                    });
+                                });
+                            } else {
+                                callback(); // TODO: trigger collection render
+                            }
+                        });
+                    }
+                })(i);
+            }
+        },
+    
+        attach: function () {
+            slinky.View.prototype.call(this);
+            this.attachItemViews();
+        },
+    
+        attachItemViews: function () {
+            for (var k in this._itemViews) {
+                this._itemViews[k].attach();
+            }
+        },
+    
+        _listenToCollection: function (collection) {
+            this.listenTo(collection, 'add', this._collectionAdd, this);
+            this.listenTo(collection, 'remove', this._collectionRemove, this);
+            this.listenTo(collection, 'reset', this._collectionReset, this);
+        },
+    
+        _addItemView: function (model, collectionDef, callback) {
+            function addItemView($target, model, collection) {
+                self._getEmptyItemViewInstance(model, collection, function (itemView) {
+                    itemView.render(function () {
+                        self.addItemView($target, view, function () {
+                            callback(); // TODO: trigger add event
+                        });
+                    });
+                });
+            }
+    
+            if (collectionDef.emptyViewShown) {
+                self.removeEmptyView($target, collectionDef.emptyView, function () {
+                    addItemView($target, model, collectionDef.collection);
+                });
+            } else {
+                addItemView($target, model, collection);
+            }
+        },
+    
+        _collectionAdd: function (model, collection) {
+            var collectionDef = this._findCollection(collection);
+            this._addItemView(model, collectionDef, function () {});
+        },
+    
+        _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
+            var collectionDef = this._findCollection(collection);
+            var $target = this.$('[slinky-collection="' + collections[i].name + '"]');
+            var view = this._itemViews[model.cid];
+            var self = this;
+    
+            this.removeItemView($target, view, function () { // TODO: trigger remove event
+                if (!collection.length) {
+                    this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                        if (emptyView) {
+                            self.addEmptyView($target, emptyView, function () { // TODO: trigger empty view add event
+    
+                            });
+                        }
+                    });
+                }
+            });
+        },
+    
+        _collectionReset: function (collection) {
+            this.renderCollection(collection);
         },
     
         _addCollection: function (name, collection) {
@@ -311,8 +455,8 @@ var slinky = (function (global, Backbone, _) {
             }
     
             if (!collection.length) {
-                this._getEmptyViewInstance(null, collection, function (emptyView) {
-                    self._setEmptyViewStatus(null, collection, true);
+                this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                    self._setEmptyViewStatus(collection, true);
                     if (emptyView) {
                         emptyView.getHtml(function (html) {
                             callback(html);
@@ -324,7 +468,7 @@ var slinky = (function (global, Backbone, _) {
             } else {
                 self._setEmptyViewStatus(collection, false);
                 collection.each(function (model) {
-                    self._getEmptyViewInstance(model, collection, function (itemView) {
+                    self._getEmptyItemViewInstance(model, collection, function (itemView) {
                         itemView.getHtml(function (itemViewHtml) {
                             html += itemViewHtml;
                             isDone();
@@ -339,53 +483,46 @@ var slinky = (function (global, Backbone, _) {
             return _.extend(options, this.itemViewOptions);
         },
     
-        _getEmptyViewInstance: function (model, collection, callback) {
+        _getEmptyItemViewInstance: function (model, collection, callback) {
             var self = this;
+            var view;
+            var collectionDef = this._findCollection(collection);
     
-    console.log('message 1');
             if (model) {
+                if (self._itemViews[model.cid]) {
+                    return callback(self._itemViews[model.cid]);
+                }
+    
                 this.getItemView(model, collection, function (ItemView) {
-    console.log('message 2');
-                    callback(new ItemView(self._getItemViewOptions({ model: model })));
+                    view = new ItemView(self._getItemViewOptions({ model: model }));
+                    self._itemViews[model.cid] = view;
+                    callback(view);
                 });
             } else {
+                if (collectionDef.emptyView) {
+                    return callback(collectionDef.emptyView);
+                }
+    
                 this.getEmptyView(collection, function (EmptyView) {
-                    callback(new EmptyView(self._getItemViewOptions()));
+                    view = new EmptyView(self._getItemViewOptions());
+                    collectionDef.emptyView = view;
+                    callback(view);
                 });
             }
         },
     
         _setEmptyViewStatus: function (collection, status) {
-            var i = this._isEmptyViewShown.length;
-            var self = this;
-    
-            function push(collection, status) {
-                self._isEmptyViewShown.push({ collection: collection, status: status });
-            }
-    
-            if (!i) {
-                push(collection, status);
-            } else {
-                while (i) {
-                    i--;
-                    if (this._isEmptyViewShown[i].collection === collection) {
-                        this._isEmptyViewShown[i].status = status;
-                        return this;
-                    }
-                }
-    
-                push(collection, status);
-            }
-    
-            return this;
+            this._findCollection(collection).emptyViewShown = status;
         },
     
-        _findCollectionNames: function (html) { // TODO: get some regex help from the community
+        _findCollectionNames: function (html) {
             var htmlSubstr = html,
                 match = true,
                 names = [],
                 start = 0;
     
+            // TODO: there has to better way than looping and creating substrings
+            // someone please help me; i suck at regexes
             while (match) {
                 htmlSubstr = htmlSubstr.substr(start);
                 match = htmlSubstr.match(/<[^>]*\s(?:slinky-collection=["']([^"']*)["'])[^>]*>/);

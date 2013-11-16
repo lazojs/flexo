@@ -12,7 +12,7 @@
             var MyView = slinky.View.extend({
 
                 attributes: {
-                    'style': 'background: #ccc;'
+                    'data-foo': 'bar'
                 },
 
                 template: 'Hi! My name is <%=fname%> <%=lname%>',
@@ -32,7 +32,13 @@
 
             });
 
-            var myView = new MyView();
+            var myView = new MyView({
+                el: 'body'
+            });
+            myView.render(function (html) {
+                console.log(myView);
+            });
+
 
             myView.attach($('body'));
             setTimeout(function () {
@@ -42,5 +48,8 @@
     </script>
 </head>
 <body>
+    <div class="1"></div>
+    <div class="2"></div>
+
 </body>
 </html>
