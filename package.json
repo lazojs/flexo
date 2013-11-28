@@ -1,8 +1,8 @@
 {
-  "name": "slinky",
+  "name": "flexo",
   "description": "client-server backbone views with async rednering life cycles",
   "version": "0.0.1",
-  "main": "dist/slinky.js",
+  "main": "dist/flexo.js",
   "private": true,
   "keywords": [
     "views",
@@ -14,7 +14,7 @@
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/jstrimpel/slinky/blob/master/license.txt"
+      "url": "https://github.com/jstrimpel/flexo/blob/master/license.txt"
     }
   ],
   "author": {
@@ -22,24 +22,25 @@
     "email": "jstrimpel@gmail.com"
   },
   "bugs": {
-    "web": "https://github.com/jstrimpel/slinky/issues"
+    "web": "https://github.com/jstrimpel/flexo/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jstrimpel/slinky.git"
+    "url": "https://github.com/jstrimpel/flexo.git"
   },
-  "github": "https://github.com/jstrimpel/slinky",
+  "github": "https://github.com/jstrimpel/flexo",
   "devDependencies": {
     "grunt": "~0.4.0",
-    "grunt-preprocess": "3.0.1"
+    "grunt-preprocess": "3.0.1",
+    "grunt-contrib-concat": "~0.1.2"
   },
   "volo": {
-    "url": "https://raw.github.com/jstrimpel/slinky/master/dist/slinky.js"
+    "url": "https://raw.github.com/jstrimpel/flexo/master/dist/flexo.js"
   },
   "jam": {
-    "main": "slinky.js",
+    "main": "flexo.js",
     "include": [
-      "slinky.js",
+      "flexo.js",
       "readme.md"
     ]
   },

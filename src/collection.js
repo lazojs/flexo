@@ -46,7 +46,7 @@ var CollectionView = View.extend({
         try {
             var View = this.itemViews[this._findCollection(collection).name];
         } catch (e) {
-            var View = slinky.View.extend({
+            var View = flexo.View.extend({
                 template: ''
             });
         } finally {
@@ -55,19 +55,19 @@ var CollectionView = View.extend({
     },
 
     getEmptyView: function (collection, callback) {
-        var View = slinky.View.extend({
+        var View = flexo.View.extend({
             template: ''
         });
         callback(View);
     },
 
     addItemView: function ($target, view, callback) {
-        $target.append(view);
+        $target.append(view.$el);
         callback();
     },
 
     addEmptyView: function ($target, view, callback) {
-        $target.append(view);
+        $target.append(view.$el);
         callback();
     },
 
@@ -101,7 +101,7 @@ var CollectionView = View.extend({
 
         for (var i = 0; i < length; i++) {
             (function (i) {
-                $target = this.$('[slinky-collection="' + collections[i].name + '"]');
+                $target = this.$('[flexo-collection="' + collections[i].name + '"]');
                 if (collections[i].length) {
                     collections[i].each(function (model) {
                         self.this._addItemView(model, collections[i], isDone);
@@ -124,7 +124,7 @@ var CollectionView = View.extend({
     },
 
     attach: function () {
-        slinky.View.prototype.call(this);
+        flexo.View.prototype.call(this);
         this.attachItemViews();
     },
 
@@ -141,10 +141,13 @@ var CollectionView = View.extend({
     },
 
     _addItemView: function (model, collectionDef, callback) {
+        var $target = this.$('[flexo-collection="' + collectionDef.name + '"]');
+        var self = this;
+
         function addItemView($target, model, collection) {
             self._getEmptyItemViewInstance(model, collection, function (itemView) {
                 itemView.render(function () {
-                    self.addItemView($target, view, function () {
+                    self.addItemView($target, itemView, function () {
                         callback(); // TODO: trigger add event
                     });
                 });
@@ -156,7 +159,7 @@ var CollectionView = View.extend({
                 addItemView($target, model, collectionDef.collection);
             });
         } else {
-            addItemView($target, model, collection);
+            addItemView($target, model, collectionDef.collection);
         }
     },
 
@@ -167,7 +170,7 @@ var CollectionView = View.extend({
 
     _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
         var collectionDef = this._findCollection(collection);
-        var $target = this.$('[slinky-collection="' + collections[i].name + '"]');
+        var $target = this.$('[flexo-collection="' + collectionDef.name + '"]');
         var view = this._itemViews[model.cid];
         var self = this;
 
@@ -190,6 +193,7 @@ var CollectionView = View.extend({
 
     _addCollection: function (name, collection) {
         if (!this._findCollection(collection)) {
+            this._listenToCollection(collection);
             this._collections.push({ name: name, collection: collection });
         }
     },
@@ -253,7 +257,7 @@ var CollectionView = View.extend({
             self = this;
 
         for (var i = 0; i < collectionNames.length; i ++) {
-            match = getInsertIndex('slinky-collection', collectionNames[i], html);
+            match = getInsertIndex('flexo-collection', collectionNames[i], html);
             htmlOpen = html.substr(0, match.index + match[0].length);
             htmlClose = html.substr(match.index + match[0].length);
             html = htmlOpen + collectionHtml[collectionNames[i]] + htmlClose;
@@ -320,7 +324,7 @@ var CollectionView = View.extend({
                 callback(view);
             });
         } else {
-            if (collectionDef.emptyView) {
+            if (collectionDef && collectionDef.emptyView) {
                 return callback(collectionDef.emptyView);
             }
 
@@ -346,7 +350,7 @@ var CollectionView = View.extend({
         // someone please help me; i suck at regexes
         while (match) {
             htmlSubstr = htmlSubstr.substr(start);
-            match = htmlSubstr.match(/<[^>]*\s(?:slinky-collection=["']([^"']*)["'])[^>]*>/);
+            match = htmlSubstr.match(/<[^>]*\s(?:flexo-collection=["']([^"']*)["'])[^>]*>/);
             if (match) {
                 names.push(match[1]);
                 start = match[0].length + match.index;

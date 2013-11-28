@@ -3,8 +3,8 @@ var View = Backbone.View.extend({
     constructor: function (options) {
         options || (options = {});
         _.extend(this, options);
-        this.isServer = slinky.isServer;
-        this.isClient = slinky.isClient;
+        this.isServer = flexo.isServer;
+        this.isClient = flexo.isClient;
         this.cid = _.uniqueId('view');
         this._ensureElement();
         this.initialize.apply(this, arguments);
@@ -25,7 +25,7 @@ var View = Backbone.View.extend({
     },
 
     attach: function () {
-        this.setElement($('[slinky-view="' + this.cid + '"]')[0]);
+        this.setElement($('[flexo-view="' + this.cid + '"]')[0]);
         this.onAttach();
     },
 
@@ -100,7 +100,7 @@ var View = Backbone.View.extend({
 
     setElement: function () { // set view el attributes after bb.prototype.setElement is called
         var response = Backbone.View.prototype.setElement.apply(this, arguments);
-        this._setElAttributes(_.extend(this._getAttributes(), this._getSlinkyAttributes()));
+        this._setElAttributes(_.extend(this._getAttributes(), this._getFlexoAttributes()));
         return response;
     },
 
@@ -136,12 +136,12 @@ var View = Backbone.View.extend({
             attrs['class'] = _.result(this, 'className');
         }
 
-        return _.extend(attrs, this._getSlinkyAttributes());
+        return _.extend(attrs, this._getFlexoAttributes());
     },
 
-    _getSlinkyAttributes: function () {
+    _getFlexoAttributes: function () {
         return {
-            'slinky-view': this.cid
+            'flexo-view': this.cid
         };
     }
 

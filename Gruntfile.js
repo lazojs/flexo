@@ -6,7 +6,7 @@ module.exports = function (grunt) {
         pkg: grunt.file.readJSON('package.json'),
         meta: {
             version: '<%= pkg.version %>',
-            banner: '// slinky, fun for a girl and a boy\n' +
+            banner: '// Flexo, Nah, I\'m just messin\' with ya; you\'re all right.\n' +
             '// ----------------------------------\n' +
             '// v<%= pkg.version %>\n' +
             '//\n' +
@@ -16,7 +16,7 @@ module.exports = function (grunt) {
         preprocess: {
             namespaced: {
                 files: {
-                    'dist/slinky.js': 'src/slinky.core.js'
+                    'dist/flexo.js': 'src/flexo.core.js'
                 }
             },
             amd: {
@@ -25,9 +25,19 @@ module.exports = function (grunt) {
             commonjs: {
 
             }
+        },
+        concat: {
+            options: {
+                banner: "<%= meta.banner %>"
+            },
+            namespaced: {
+                src: 'dist/flexo.js',
+                dest: 'dist/flexo.js'
+            }
         }
     });
 
     grunt.loadNpmTasks('grunt-preprocess');
-    grunt.registerTask('default', ['preprocess:namespaced']);
+    grunt.loadNpmTasks('grunt-contrib-concat');
+    grunt.registerTask('default', ['preprocess:namespaced', 'concat:namespaced']);
 };

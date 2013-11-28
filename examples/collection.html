@@ -10,7 +10,7 @@
     <script type="text/javascript">
         $(function () {
 
-            var ItemView = slinky.View.extend({
+            var ItemView = flexo.View.extend({
 
                 tagName: 'li',
 
@@ -22,13 +22,13 @@
 
             });
 
-            var MyView = slinky.CollectionView.extend({
+            var MyView = flexo.CollectionView.extend({
 
                 attributes: {
                     'data-foo': 'bar'
                 },
 
-                template: '<ul slinky-collection="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul slinky-collection="bar"></ul>',
+                template: '<ul flexo-collection="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul flexo-collection="bar"></ul>',
 
                 serializeData: function (callback) {
                     callback({ fname: 'Jason', lname: 'Strimpel' })
@@ -43,14 +43,14 @@
 
                     foo: new Backbone.Collection([
                         { name: 'Roger' },
-                        { name: 'Steve' },
-                        { name: 'Stan' }
+                        { name: 'Steve' }//,
+                        // { name: 'Stan' }
                     ]),
 
                     bar: new Backbone.Collection([
                         { name: 'Brian' },
-                        { name: 'Peter' },
-                        { name: 'Chris' }
+                        { name: 'Peter' } //,
+                        // { name: 'Chris' }
                     ])
                 }
 
@@ -62,6 +62,18 @@
             myView.render(function (html) {
                 console.log(html);
             });
+
+            setTimeout(function () {
+                myView.collections.foo.add({
+                    name: 'Stan'
+                });
+            }, 1000);
+
+            setTimeout(function () {
+                myView.collections.foo.pop();
+            }, 2000);
+
+// console.log(myView.collections.foo.toJSON());
         });
     </script>
 </head>

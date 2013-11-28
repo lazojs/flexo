@@ -1,4 +1,4 @@
-var slinky = {
+var flexo = {
     isClient: false,
     isServer: false
 };
@@ -12,12 +12,12 @@ function getInsertIndex(attr, val, html) {
 
 try {
     window;
-    slinky.isClient = true;
+    flexo.isClient = true;
 } catch (e) {
-    slinky.isServer = true;
+    flexo.isServer = true;
 }
 
-if (slinky.isServer) {
+if (flexo.isServer) {
     Backbone.View.prototype._ensureElement = noop;
     Backbone.View.prototype.delegateEvents = noop;
     Backbone.View.prototype.undelegateEvents = noop;
