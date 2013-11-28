@@ -1,6 +1,8 @@
-# flexo, client-server backbone views with async rendering life cycles
+# flexo
 
 > Nah, I'm just messin' with ya; you're all right.
+
+> client-server backbone views with async rendering life cycles
 
 Backbone based libraries and frameworks typically have synchronous rendering life cycles.
 This does not lend itself well to applications that have asynchronous rendering life cycles.
@@ -9,7 +11,7 @@ have been resolved before a view’s rendering life cycle begins. This assumptio
 well in applications where rendering nodes can be added at runtime on the client, e.g., an
 item is added to a collection that is driving a collection view. Synchronous rendering life
 cycles also make it impossible to work with rendering and template engines that are
-asynchronous, and add animations when views are added and removed from the DOM.
+asynchronous, and make animating item views adds and removals from the DOM difficult.
 
 Flexo, solves this by providing a 100% asynchronous rendering life cycle with sensible
 defaults and the proper hook points that allow developers add their own implementations for
