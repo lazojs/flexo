@@ -20,6 +20,7 @@ var View = Backbone.View.extend({
 
         this.getInnerHtml(function (html) {
             self.$el.html(html);
+            self.afterRender();
             callback(html);
         });
     },

@@ -33,6 +33,12 @@ module.exports = function (grunt) {
             namespaced: {
                 src: 'dist/flexo.js',
                 dest: 'dist/flexo.js'
+            },
+            amd: {
+
+            },
+            commonjs: {
+
             }
         }
     });
