@@ -2,8 +2,6 @@
 
 > Nah, I'm just messin' with ya; you're all right.
 
-> client-server backbone views with async rendering life cycles
-
 Backbone based libraries and frameworks typically have synchronous rendering life cycles.
 This does not lend itself well to applications that have asynchronous rendering life cycles.
 It also makes the assumption that all resources – templates, template engines, data, etc. –
