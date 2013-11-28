@@ -5,7 +5,7 @@
 Backbone based libraries and frameworks typically have synchronous rendering life cycles.
 This does not lend itself well to applications that have asynchronous rendering life cycles.
 It also makes the assumption that all resources – templates, template engines, data, etc. –
-have been resolved before a view’s rendering life cycle begins. This assumption does not work
+have been resolved before a view’s rendering life cycle begins. This does not work
 well in applications where rendering nodes can be added at runtime on the client, e.g., an
 item is added to a collection that is driving a collection view. Synchronous rendering life
 cycles also make it impossible to work with rendering and template engines that are
