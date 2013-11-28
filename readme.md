@@ -63,7 +63,7 @@ A hook point for transforming the data from serializeData, e.g., formatting date
 
 ## flexo.CollectionView
 
-Extends flexo.View. Renders 1 to **n** collections. Surrounding markup is optional when only
+Extends flexo.View. Renders 1 to *n* collections. Surrounding markup is optional when only
 rendering a single collection.
 
 - getCollection(nameCollection, callback)
