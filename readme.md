@@ -38,7 +38,7 @@ Called after render injects HTML into the DOM. Useful for kicking off client sid
 Called after a view has beened removed from the DOM.
 
 - onAttach
-- Called after a view has been attached to the DOM.
+Called after a view has been attached to the DOM.
 
 - remove
 Removes a view from the DOM.
