@@ -24,22 +24,24 @@ solution and your application.
 
 ## flexo.View
 
-`render([callback])`
+### `render([callback])`
 Proxies to getInnerHtml and injects response in $el. Returns HTML string to optional callback.
 ```javascript
 view.render(function (html) {
     // do something cool after render
 });
 ```
+---
 
-`attach`
+### `attach`
 Attaches a view to the element with corresponding cid in the DOM. Useful for attaching views to
 server rendered markup.
 ```javascript
 view.attach();
 ```
+---
 
-`afterRender`
+### `afterRender`
 Called after render injects HTML into the DOM. Useful for kicking off client side code like widgets.
 ```javascript
 var View = flexo.View.extend({
@@ -50,8 +52,9 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`onRemove`
+### `onRemove`
 Called after a view has beened removed from the DOM.
 ```javascript
 var View = flexo.View.extend({
@@ -62,8 +65,9 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`onAttach`
+### `onAttach`
 Called after a view has been attached to the DOM.
 ```javascript
 var View = flexo.View.extend({
@@ -74,34 +78,38 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`remove`
+### `remove`
 Removes a view from the DOM. Calls onRemove then `Backbone.View.prototype.remove`.
 ```javascript
 view.remove();
 ```
+---
 
-`getHtml([callback])`
+### `getHtml([callback])`
 Gets the HTML representation of the view including $el.
 ```javascript
 view.getHtml(function (html) {
-    // do something the html
+    // do something cool with the html
 });
 ```
+---
 
-`getInnerHtml([callback])`
+### `getInnerHtml([callback])`
 Gets the HTML representation of the view exlcuding $el.
 ```javascript
 view.getInnerHtml(function (html) {
-    // do something the html
+    // do something cool with the html
 });
 ```
+---
 
-`getRenderer(callback)`
+### `getRenderer(callback)`
 Used to get and wrap the rendering engine in the flexo interface rendering interface.
 ```javascript
-// default implementation, but this could return an interface, `view.renderer.execute` that wraps anything
-// that returns a string
+// default implementation, but this could return an interface, `view.renderer.execute`
+// that wraps anything that returns a string
 var View = flexo.View.extend({
 
     getRenderer: function (callback) {
@@ -124,8 +132,9 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`getRenderingEngine(callback)`
+### `getRenderingEngine(callback)`
 Gets the rendering engine module.
 ```javascript
 // default implementation, but this could return any template compiler or renderer that returns a string.
@@ -137,11 +146,12 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`serializeData(callback)`
+### `serializeData(callback)`
 Serializes the data for a view.
 ```javascript
-// default implementation, but this could return any JSON data structures your heat desires.
+// default implementation, but this could return any JSON data structure your heat desires.
 var View = flexo.View.extend({
 
     serializeData: function (callback) {
@@ -153,11 +163,12 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
-`transformData(callback)`
+### `transformData(callback)`
 A hook point for transforming the data from serializeData, e.g., formatting dates.
 ```javascript
-// default implementation, but this could return any JSON data structures your heat desires.
+// default implementation, but this could manipulate the serialized data into anything
 var View = flexo.View.extend({
 
     transformData: function (callback) {
@@ -166,6 +177,7 @@ var View = flexo.View.extend({
 
 });
 ```
+---
 
 ## flexo.CollectionView
 
