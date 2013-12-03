@@ -55,10 +55,15 @@ var CollectionView = View.extend({
     },
 
     getEmptyView: function (collection, callback) {
-        var View = flexo.View.extend({
-            template: ''
-        });
-        callback(View);
+        try {
+            var View = this.emptyViews[this._findCollection(collection).name];
+        } catch (e) {
+            var View = flexo.View.extend({
+                template: ''
+            });
+        } finally {
+            callback(View);
+        }
     },
 
     addItemView: function ($target, view, callback) {
