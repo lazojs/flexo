@@ -12,7 +12,7 @@ cycles also make it impossible to work with rendering and template engines that 
 asynchronous, and make animating item view adds and removals from the DOM difficult.
 
 Flexo, solves this by providing a 100% asynchronous rendering life cycle with sensible
-defaults and the proper hook points that allow developers add their own implementations for
+defaults and the proper hook points that allow developers to add their own implementations for
 resolving their dependencies and rendering.
 
 Additionally, Flexo is able to run on both the server and client because it uses string
@@ -175,7 +175,8 @@ var View = flexo.View.extend({
 ### flexo.CollectionView
 
 Extends flexo.View. Renders 1 to *n* collections. Surrounding markup is optional when only
-rendering a single collection.
+rendering a single collection. Collection targets are mapped to data attributes,
+`flexo-collection="collection_name"`, in the HTML string.
 
 #### `getCollection(nameCollection, callback)`
 If nameCollection is a string then it proxies resolveCollection. Otherwise it returns collection
