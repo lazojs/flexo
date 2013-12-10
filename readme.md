@@ -176,8 +176,8 @@ var View = flexo.View.extend({
 
 Extends flexo.View. Renders 1 to *n* collections. Surrounding markup is optional when only
 rendering a single collection. Collection targets are mapped to data attributes,
-`flexo-collection="collection_name"`, in the HTML string when `render` or `renderCollection`
-is called.
+`flexo-collection="collection_name"`, in the HTML string when `getHtml`, `getInnerHtml`,
+`render` or `renderCollection` is called.
 
 #### `getCollection(nameCollection, callback)`
 If nameCollection is a string then it proxies resolveCollection. Otherwise it returns collection
