@@ -340,7 +340,7 @@ view.renderCollection(null, function () {
 view.renderCollection('foo', function () {
     // do something cool
 });
-``
+```
 
 ## Events
 TODO
