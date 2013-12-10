@@ -36,7 +36,6 @@ view.render(function (html) {
     // do something cool after render
 });
 ```
----
 
 #### `attach`
 Attaches a view to the element with corresponding cid in the DOM. Useful for attaching views to
@@ -44,7 +43,6 @@ server rendered markup.
 ```javascript
 view.attach();
 ```
----
 
 #### `afterRender`
 Called after render injects HTML into the DOM. Useful for kicking off client side code like widgets.
@@ -57,7 +55,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `onRemove`
 Called after a view has beened removed from the DOM.
@@ -70,7 +67,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `onAttach`
 Called after a view has been attached to the DOM.
@@ -83,14 +79,12 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `remove`
 Removes a view from the DOM. Calls onRemove then `Backbone.View.prototype.remove`.
 ```javascript
 view.remove();
 ```
----
 
 #### `getHtml([callback])`
 Gets the HTML representation of the view including $el.
@@ -99,7 +93,6 @@ view.getHtml(function (html) {
     // do something cool with the html
 });
 ```
----
 
 #### `getInnerHtml([callback])`
 Gets the HTML representation of the view exlcuding $el.
@@ -108,7 +101,6 @@ view.getInnerHtml(function (html) {
     // do something cool with the html
 });
 ```
----
 
 #### `getRenderer(callback)`
 Used to get and wrap the rendering engine in the flexo interface rendering interface.
@@ -137,7 +129,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `getRenderingEngine(callback)`
 Gets the rendering engine module.
@@ -151,7 +142,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `serializeData(callback)`
 Serializes the data for a view.
@@ -168,7 +158,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 #### `transformData(callback)`
 A hook point for transforming the data from serializeData, e.g., formatting dates.
@@ -182,7 +171,6 @@ var View = flexo.View.extend({
 
 });
 ```
----
 
 ### flexo.CollectionView
 
