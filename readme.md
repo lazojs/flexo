@@ -22,9 +22,14 @@ Flexo is not a complete solution. It is intended to be a base for creating your 
 providing structure and asynchronous rendering life cycles. It should be part of a larger
 solution and your application.
 
-## flexo.View
+## API
+There are default implementations for all methods. The majority of examples below show these
+implementations for reference purposes. These implementations can be overwritten to meet your
+needs.
 
-### `render([callback])`
+### flexo.View
+
+#### `render([callback])`
 Proxies to getInnerHtml and injects response in $el. Returns HTML string to optional callback.
 ```javascript
 view.render(function (html) {
@@ -33,7 +38,7 @@ view.render(function (html) {
 ```
 ---
 
-### `attach`
+#### `attach`
 Attaches a view to the element with corresponding cid in the DOM. Useful for attaching views to
 server rendered markup.
 ```javascript
@@ -41,7 +46,7 @@ view.attach();
 ```
 ---
 
-### `afterRender`
+#### `afterRender`
 Called after render injects HTML into the DOM. Useful for kicking off client side code like widgets.
 ```javascript
 var View = flexo.View.extend({
@@ -54,7 +59,7 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `onRemove`
+#### `onRemove`
 Called after a view has beened removed from the DOM.
 ```javascript
 var View = flexo.View.extend({
@@ -67,7 +72,7 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `onAttach`
+#### `onAttach`
 Called after a view has been attached to the DOM.
 ```javascript
 var View = flexo.View.extend({
@@ -80,14 +85,14 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `remove`
+#### `remove`
 Removes a view from the DOM. Calls onRemove then `Backbone.View.prototype.remove`.
 ```javascript
 view.remove();
 ```
 ---
 
-### `getHtml([callback])`
+#### `getHtml([callback])`
 Gets the HTML representation of the view including $el.
 ```javascript
 view.getHtml(function (html) {
@@ -96,7 +101,7 @@ view.getHtml(function (html) {
 ```
 ---
 
-### `getInnerHtml([callback])`
+#### `getInnerHtml([callback])`
 Gets the HTML representation of the view exlcuding $el.
 ```javascript
 view.getInnerHtml(function (html) {
@@ -105,7 +110,7 @@ view.getInnerHtml(function (html) {
 ```
 ---
 
-### `getRenderer(callback)`
+#### `getRenderer(callback)`
 Used to get and wrap the rendering engine in the flexo interface rendering interface.
 ```javascript
 // default implementation, but this could return an interface, `view.renderer.execute`
@@ -134,7 +139,7 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `getRenderingEngine(callback)`
+#### `getRenderingEngine(callback)`
 Gets the rendering engine module.
 ```javascript
 // default implementation, but this could return any template compiler or renderer that returns a string.
@@ -148,7 +153,7 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `serializeData(callback)`
+#### `serializeData(callback)`
 Serializes the data for a view.
 ```javascript
 // default implementation, but this could return any JSON data structure your heat desires.
@@ -165,7 +170,7 @@ var View = flexo.View.extend({
 ```
 ---
 
-### `transformData(callback)`
+#### `transformData(callback)`
 A hook point for transforming the data from serializeData, e.g., formatting dates.
 ```javascript
 // default implementation, but this could manipulate the serialized data into anything
@@ -179,48 +184,163 @@ var View = flexo.View.extend({
 ```
 ---
 
-## flexo.CollectionView
+### flexo.CollectionView
 
 Extends flexo.View. Renders 1 to *n* collections. Surrounding markup is optional when only
 rendering a single collection.
 
-- getCollection(nameCollection, callback)
-If nameCollection is a string then it proxies resolveCollection. Otherwise it retunes colllection
+#### `getCollection(nameCollection, callback)`
+If nameCollection is a string then it proxies resolveCollection. Otherwise it returns collection
 via callback.
 
-- resolveCollection(name, callback)
+#### `resolveCollection(name, callback)`
 Looks up collection by name.
+```javascript
+// default implementation, but this could use any logic to find a collection by name
+var View = flexo.View.extend({
 
-- getItemView(model, collection, callback)
-Gets item view constructor. The default implementation attempts to resolve using the
-schema below.
+    resolveCollection: function (name, callback) {
+        try {
+            // attempts to lookup collection in 'collections' view property
+            var collection = this.collections[name];
+            callback(collection);
+        } catch (e) {
+            callback(new Backbone.Collection());
+        }
+    },
 
-itemViews: {
-    collectionName: View
-}
+    collections: { // example collections property
+        foo: collectionInstance,
+        bar: collectionInstance
+    }
 
-- getEmptyView(collection, callback)
-Gets empty view constructor. The default implementation attempts to resolve using the
-schema below.
+});
+```
 
-emptyViews: {
-    collectionName: View
-}
+#### `getItemView(model, collection, callback)`
+Gets item view constructor.
+```javascript
+// default implementation, but this could use any logic to get an item view constructor
+// eventually this will and should throw an error if the view constructor cannot be resolved
+var View = flexo.View.extend({
 
-- addItemView($target, view, callback)
-Called when a model is added to a collection. The default implementation appends
-view to target element.
+     getItemView: function (model, collection, callback) {
+        try {
+            var View = this.itemViews[this._findCollection(collection).name];
+        } catch (e) {
+            var View = flexo.View.extend({
+                template: ''
+            });
+        } finally {
+            callback(View);
+        }
+    },
 
-- addEmptyView($target, view, callback)
-Called when an empty collection is rendered. The default implementation appends
-view to target element.
+    itemViews: { // example itemViews property
+        foo: ViewClassForFooCollection,
+        bar: ViewClassForBarCollection
+    }
 
-- removeEmptyView($target, view, callback)
-Removes empty view from target. The default implementation calls view.remove().
+});
+```
 
-- removeItemView($target, view, callback)
-Removes item view from target. The default implementation calls view.remove().
+#### `getEmptyView(collection, callback)`
+Gets empty view constructor.
+```javascript
+// default implementation, but this could use any logic to get an empty view constructor
+// eventually this will and should throw an error if the view constructor cannot be resolved
+var View = flexo.View.extend({
 
-- renderCollection(collection, callback)
+    getEmptyView: function (collection, callback) {
+        try {
+            var View = this.emptyViews[this._findCollection(collection).name];
+        } catch (e) {
+            var View = flexo.View.extend({
+                template: ''
+            });
+        } finally {
+            callback(View);
+        }
+    },
+
+    emptyViews: { // example emptyViews property
+        foo: ViewClassForEmptyFooCollection,
+        bar: ViewClassForEmptyBarCollection
+    }
+
+});
+```
+
+#### `addItemView($target, view, callback)`
+Called when a model is added to a collection.
+```javascript
+// default implementation appends view to target element
+var View = flexo.View.extend({
+
+    addItemView: function ($target, view, callback) {
+        $target.append(view.$el);
+        callback();
+    }
+
+});
+```
+
+#### `addEmptyView($target, view, callback)`
+Called when an empty collection is rendered.
+```javascript
+// default implementation appends view to target element
+var View = flexo.View.extend({
+
+    addEmptyView: function ($target, view, callback) {
+        $target.append(view.$el);
+        callback();
+    }
+
+});
+```
+
+#### `removeEmptyView($target, view, callback)`
+Removes empty view from target.
+```javascript
+// default implementation calls view.remove()
+var View = flexo.View.extend({
+
+    removeEmptyView: function ($target, view, callback) {
+        view.remove();
+        callback();
+    }
+
+});
+```
+
+#### `removeItemView($target, view, callback)`
+Removes item view from target.
+Removes empty view from target.
+```javascript
+// default implementation calls view.remove()
+var View = flexo.View.extend({
+
+    removeItemView: function ($target, view, callback) {
+        view.remove();
+        callback();
+    }
+
+});
+```
+
+#### `renderCollection(collection, callback)`
 Renders a collection if name or collection object is passed. Otherwise it renders all
 collections.
+```javascript
+// render all collections
+view.renderCollection(null, function () {
+    // do something cool
+});
+// render collection named foo
+view.renderCollection('foo', function () {
+    // do something cool
+});
+``
+
+## Events
+TODO
