@@ -57,7 +57,11 @@ var View = Backbone.View.extend({
 
         this.getRenderer(function (renderer) {
             self.serializeData(function (data) {
-                renderer.execute(data, callback);
+                renderer.execute(data, function (html) {
+                    self.getChildViewsHtml(html, function (html) {
+                        callback(html);
+                    });
+                });
             });
         });
     },
@@ -65,7 +69,7 @@ var View = Backbone.View.extend({
     getRenderer: function (callback) {
         callback = callback || defaultCallback;
         if (this.renderer) {
-            callback(this.renderer);
+            return callback(this.renderer);
         }
 
         var self = this;
@@ -104,6 +108,77 @@ var View = Backbone.View.extend({
         this._setElAttributes(_.extend(this._getAttributes(), this._getFlexoAttributes()));
         return response;
     },
+
+    getChildViewsHtml: function (htmlBuffer, callback) {
+        var self = this;
+
+        this.getChildViews(function (views) {
+            var viewCount = views ? _.size(views) : 0;
+            var viewsLoaded = 0;
+            if (!viewCount) {
+                return callback(htmlBuffer);
+            }
+
+            _.each(views, function (view, key) {
+                self.resolveChildView(key, function (view) {
+                    view.getHtml(function (html) {
+                        htmlBuffer = insertIntoHtmlStr('flexo-child-view', key, html, htmlBuffer);
+                        viewsLoaded++;
+                        if (viewsLoaded === viewCount) {
+                            callback(htmlBuffer);
+                        }
+                    });
+                });
+            });
+        });
+    },
+
+    getChildViews: function (callback) {
+        callback(_.result(this, 'childViews'));
+    },
+
+    addChild: function (viewName, $target, callback) {
+        var self = this;
+        this.loadChildView(viewName, function (View) {
+            self.getChildViewOptions(function (options) {
+                self._childViews[viewName] = new View(options);
+                view.render();
+                self.appendChildView($target, view, callback);
+            });
+        });
+    },
+
+    loadChildView: function (viewName, callback) {
+        callback(Backbone.View);
+    },
+
+    resolveChildView: function (viewName, callback) {
+        var view = this._childViews[viewName];
+        var View;
+        var self = this;
+        if (view) {
+            return callback(view);
+        }
+
+        if (!(View = this.childViews[viewName])) {
+            throw 'Child view, ' + viewName + ' could not be resolved.';
+        }
+        this.getChildViewOptions(function (options) {
+            view = self._childViews[viewName] = new View(options);
+            callback(view);
+        });
+    },
+
+    appendChildView: function ($target, view, callback) {
+        $target.append(view.$el);
+        callback();
+    },
+
+    getChildViewOptions: function (callback) {
+        callback(_.clone(this.childViewOptions || {}));
+    },
+
+    _childViews: {},
 
     _wrapperEl: function (html) {
         var elHtmlOpen;

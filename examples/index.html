@@ -6,28 +6,34 @@
     <script type="text/javascript" src="../lib/jquery.js"></script>
     <script type="text/javascript" src="../lib/underscore.js"></script>
     <script type="text/javascript" src="../lib/backbone.js"></script>
-    <script type="text/javascript" src="../dist/slinky.js"></script>
+    <script type="text/javascript" src="../dist/flexo.js"></script>
     <script type="text/javascript">
         $(function () {
-            var MyView = slinky.View.extend({
+            var MyView = flexo.View.extend({
 
                 attributes: {
                     'data-foo': 'bar'
                 },
 
-                template: 'Hi! My name is <%=fname%> <%=lname%>',
+                template: 'Hi! My name is <%=fname%> <%=lname%> <div flexo-child-view="foo"></div> More text.',
 
                 serializeData: function (callback) {
                     callback({ fname: 'Jason', lname: 'Strimpel' })
                 },
 
-                onAttach: function () {
-                    var self = this;
-                    this.render();
-                },
-
                 onRemove: function () {
                     console.log('you are outa here!');
+                },
+
+                childViews: {
+                    foo: flexo.View.extend({
+                        template: 'I am the child view!!!<div flexo-child-view="bar"></div> Even more text.',
+                        childViews: {
+                            bar: flexo.View.extend({
+                                template: 'I am the grandchild view!!!'
+                            })
+                        }
+                    })
                 }
 
             });
@@ -36,20 +42,20 @@
                 el: 'body'
             });
             myView.render(function (html) {
-                console.log(myView);
+                console.log(html);
             });
+//             myView.render(function (html) {
+// console.log(html);
+//             });
 
 
-            myView.attach($('body'));
-            setTimeout(function () {
-                myView.remove();
-            }, 1500);
+            // myView.attach($('body'));
+            // setTimeout(function () {
+            //     myView.remove();
+            // }, 1500);
         });
     </script>
 </head>
 <body>
-    <div class="1"></div>
-    <div class="2"></div>
-
 </body>
 </html>

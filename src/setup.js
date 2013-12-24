@@ -9,6 +9,14 @@ function getInsertIndex(attr, val, html) {
     var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
     return html.match(regex);
 }
+function insertIntoHtmlStr(attr, val, html, htmlBuffer) {
+    var match = getInsertIndex(attr, val, htmlBuffer);
+    var htmlBufferOpen = htmlBuffer.substr(0, match.index + match[0].length);
+    var htmlBufferClose = htmlBuffer.substr(match.index + match[0].length);
+
+    htmlBuffer = htmlBufferOpen + html + htmlBufferClose;
+    return htmlBuffer;
+}
 
 try {
     window;
