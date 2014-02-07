@@ -4,7 +4,7 @@
 //
 // Copyright (c)2014 Jason Strimpel
 // Distributed under MIT license
-var flexo = (function (global, Backbone, _) {
+define(['underscore', 'backbone'], function (_, Backbone) {
 
     'use strict';
 
@@ -639,4 +639,4 @@ var flexo = (function (global, Backbone, _) {
 
     return flexo;
 
-})(this, Backbone, _);
+});

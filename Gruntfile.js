@@ -20,10 +20,14 @@ module.exports = function (grunt) {
                 }
             },
             amd: {
-
+                files: {
+                    'dist/flexo.amd.js': 'src/flexo.amd.core.js'
+                }
             },
             commonjs: {
-
+                files: {
+                    'dist/flexo.common.js': 'src/flexo.common.core.js'
+                }
             }
         },
         concat: {
@@ -35,15 +39,19 @@ module.exports = function (grunt) {
                 dest: 'dist/flexo.js'
             },
             amd: {
-
+                src: 'dist/flexo.amd.js',
+                dest: 'dist/flexo.amd.js'
             },
             commonjs: {
-
+                src: 'dist/flexo.common.js',
+                dest: 'dist/flexo.common.js'
             }
         }
     });
 
     grunt.loadNpmTasks('grunt-preprocess');
     grunt.loadNpmTasks('grunt-contrib-concat');
-    grunt.registerTask('default', ['preprocess:namespaced', 'concat:namespaced']);
+    grunt.registerTask('default', [
+        'preprocess:namespaced', 'concat:namespaced', 'preprocess:amd', 'concat:amd', 'preprocess:commonjs', 'concat:commonjs'
+    ]);
 };
