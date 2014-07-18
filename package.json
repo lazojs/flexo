@@ -3,7 +3,7 @@
   "description": "client-server backbone views with async rendering life cycles",
   "version": "0.0.1",
   "main": "dist/flexo.common.js",
-  "private": true,
+  "private": false,
   "keywords": [
     "views",
     "client",
