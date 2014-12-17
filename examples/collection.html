@@ -6,7 +6,7 @@
     <script type="text/javascript" src="../lib/jquery.js"></script>
     <script type="text/javascript" src="../lib/underscore.js"></script>
     <script type="text/javascript" src="../lib/backbone.js"></script>
-    <script type="text/javascript" src="../dist/slinky.js"></script>
+    <script type="text/javascript" src="../dist/flexo.js"></script>
     <script type="text/javascript">
         $(function () {
 
@@ -15,7 +15,7 @@
                 tagName: 'li',
 
                 serializeData: function (callback) {
-                    callback(this.model.toJSON())
+                    callback(null, this.model.toJSON())
                 },
 
                 template: '<%=name%>'
@@ -31,7 +31,7 @@
                 template: '<ul flexo-collection="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul flexo-collection="bar"></ul>',
 
                 serializeData: function (callback) {
-                    callback({ fname: 'Jason', lname: 'Strimpel' })
+                    callback(null, { fname: 'Jason', lname: 'Strimpel' })
                 },
 
                 itemViews: {

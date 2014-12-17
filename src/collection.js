@@ -16,9 +16,15 @@ var CollectionView = View.extend({
         var self = this;
         callback = callback || defaultCallback;
 
-        View.prototype.getInnerHtml.call(this, function (innerHtml) {
-            self._getCollectionHtml(innerHtml, function (collectionInnerHtml) {
-                callback(collectionInnerHtml);
+        View.prototype.getInnerHtml.call(this, function (err, innerHtml) {
+            if (err) {
+                return callback(err, null);
+            }
+            self._getCollectionHtml(innerHtml, function (err, collectionInnerHtml) {
+                if (err) {
+                    return callback(err, null);
+                }
+                callback(null, collectionInnerHtml);
             });
         });
     },
@@ -27,63 +33,61 @@ var CollectionView = View.extend({
         if (_.isString(nameCollection)) {
             this.resolveCollection(nameCollection, callback);
         } else if (nameCollection instanceof Backbone.Collection) {
-            callback(nameCollection);
+            callback(null, nameCollection);
         } else {
-            callback(new Backbone.Collection());
+            callback(null, new Backbone.Collection());
         }
     },
 
     resolveCollection: function (name, callback) {
         try {
             var collection = this.collections[name];
-            callback(collection);
+            callback(null, collection);
         } catch (e) {
-            callback(new Backbone.Collection());
+            callback(e, null);
         }
     },
 
-    getItemView: function (model, collection, callback) { // TODO: throw error if view not found
+    getItemView: function (model, collection, callback) {
         try {
             var View = this.itemViews[this._findCollection(collection).name];
+            callback(null, View);
         } catch (e) {
-            var View = flexo.View.extend({
-                template: ''
-            });
-        } finally {
-            callback(View);
+            callback(e, null);
         }
     },
 
     getEmptyView: function (collection, callback) {
         try {
             var View = this.emptyViews[this._findCollection(collection).name];
+            callback(null, View);
         } catch (e) {
-            var View = flexo.View.extend({
-                template: ''
-            });
-        } finally {
-            callback(View);
+            callback(e, null);
         }
     },
 
     addItemView: function ($target, view, callback) {
         $target.append(view.$el);
-        callback();
+        callback(null, view);
+        this.trigger('flexo:itemView:added', view);
     },
 
     addEmptyView: function ($target, view, callback) {
         $target.append(view.$el);
-        callback();
+        callback(null, view);
+        this.trigger('flexo:emptyView:added', view);
     },
 
     removeEmptyView: function ($target, view, callback) {
         view.remove();
-        callback();
+        callback(null, true);
+        this.trigger('flexo:itemView:removed');
     },
 
     removeItemView: function ($target, view, callback) {
         view.remove();
-        callback();
+        callback(null, true);
+        this.trigger('flexo:emptyView:removed');
     },
 
     renderCollection: function (collection, callback) {
@@ -97,30 +101,37 @@ var CollectionView = View.extend({
         callback = _.isFunction(collection) ? collection : callback;
         callback = callback || defaultCallback;
 
-        function isDone() {
-            itemViewsAdded++;
-            if (itemViewsToBeAdded === itemViewsAdded) {
-                callback(); // TODO: trigger collection render
-            }
-        }
-
         for (var i = 0; i < length; i++) {
             (function (i) {
                 $target = this.$('[flexo-collection="' + collections[i].name + '"]');
                 if (collections[i].length) {
                     collections[i].each(function (model) {
-                        self.this._addItemView(model, collections[i], isDone);
+                        self.this._addItemView(model, collections[i], function () {
+                            itemViewsAdded++;
+                            if (itemViewsToBeAdded === itemViewsAdded) {
+                                callback(null, true); // TODO: trigger collection render
+                                self.trigger('flexo:collection:rendered', collections[i]);
+                            }
+                        });
                     });
                 } else { // empty view
-                    this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                    this._getEmptyItemViewInstance(null, collections[i], function (err, emptyView) {
+                        if (err) {
+                            return callback(err, null);
+                        }
                         if (emptyView) {
                             emptyView.render(function () {
-                                self.addEmptyView($target, view, function () { // TODO: trigger add empty view
-                                    callback(); // TODO: trigger collection render
+                                self.addEmptyView($target, view, function (err, result) { // TODO: trigger add empty view
+                                    if (err) {
+                                        return callback(err, null);
+                                    }
+                                    callback(null, result);
+                                    self.trigger('flexo:collection:rendered', collections[i]);
                                 });
                             });
                         } else {
-                            callback(); // TODO: trigger collection render
+                            callback(null, true);
+                            self.trigger('flexo:collection:rendered', collections[i]);
                         }
                     });
                 }
@@ -137,6 +148,7 @@ var CollectionView = View.extend({
         for (var k in this._itemViews) {
             this._itemViews[k].attach();
         }
+        this.trigger('flexo:itemViews:attached');
     },
 
     _listenToCollection: function (collection) {
@@ -150,17 +162,30 @@ var CollectionView = View.extend({
         var self = this;
 
         function addItemView($target, model, collection) {
-            self._getEmptyItemViewInstance(model, collection, function (itemView) {
-                itemView.render(function () {
-                    self.addItemView($target, itemView, function () {
-                        callback(); // TODO: trigger add event
+            self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
+                if (err) {
+                    return callback(err, null);
+                }
+                itemView.render(function (err, html) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    self.addItemView($target, itemView, function (err, result) {
+                        if (err) {
+                            return callback(err, null);
+                        }
+                        callback(null, result);
+                        self.trigger('flexo:itemView:added', itemView);
                     });
                 });
             });
         }
 
         if (collectionDef.emptyViewShown) {
-            self.removeEmptyView($target, collectionDef.emptyView, function () {
+            self.removeEmptyView($target, collectionDef.emptyView, function (err, result) {
+                if (err) {
+                    return callback(err, null);
+                }
                 addItemView($target, model, collectionDef.collection);
             });
         } else {
@@ -170,7 +195,11 @@ var CollectionView = View.extend({
 
     _collectionAdd: function (model, collection) {
         var collectionDef = this._findCollection(collection);
-        this._addItemView(model, collectionDef, function () {});
+        this._addItemView(model, collectionDef, function (err, result) {
+            if (err) {
+                throw err;
+            }
+        });
     },
 
     _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
@@ -179,12 +208,21 @@ var CollectionView = View.extend({
         var view = this._itemViews[model.cid];
         var self = this;
 
-        this.removeItemView($target, view, function () { // TODO: trigger remove event
+        this.removeItemView($target, view, function (err, result) { // TODO: trigger remove event
+            if (err) {
+                throw err;
+            }
             if (!collection.length) {
-                this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
+                    if (err) {
+                        throw err;
+                    }
                     if (emptyView) {
-                        self.addEmptyView($target, emptyView, function () { // TODO: trigger empty view add event
-
+                        self.addEmptyView($target, emptyView, function (err, result) { // TODO: trigger empty view add event
+                            if (err) {
+                                throw err;
+                            }
+                            self.trigger('flexo:emptyView:removed', collection);
                         });
                     }
                 });
@@ -227,7 +265,7 @@ var CollectionView = View.extend({
         function isDone() {
             collectionsHtmlResolved++;
             if (collectionsCount === collectionsHtmlResolved) {
-                callback(self._insertCollectionHtml(collectionNames, collectionHtml, html));
+                callback(null, self._insertCollectionHtml(collectionNames, collectionHtml, html));
             }
         }
 
@@ -235,9 +273,15 @@ var CollectionView = View.extend({
             collectionsCount = collectionNames.length;
             for (var i = 0; i < collectionNames.length; i++) {
                 (function (i) {
-                    self.getCollection(collectionNames[i], function (collection) {
+                    self.getCollection(collectionNames[i], function (err, collection) {
+                        if (err) {
+                            callback(err, null);
+                        }
                         self._addCollection(collectionNames[i], collection);
-                        self._getItemViewsHtml(collection, function (itemViewsHtml) {
+                        self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
+                            if (err) {
+                                callback(err, null);
+                            }
                             collectionHtml[collectionNames[i]] = itemViewsHtml;
                             isDone();
                         });
@@ -245,9 +289,15 @@ var CollectionView = View.extend({
                 })(i);
             }
         } else if (this.collection) { // collection is inserted directly under this.el
-            self.getCollection(this.collection, function (collection) {
-                self._getItemViewsHtml(collection, function (itemViewsHtml) {
-                    callback(itemViewsHtml);
+            self.getCollection(this.collection, function (err, collection) {
+                if (err) {
+                    callback(err, null);
+                }
+                self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
+                    if (err) {
+                        callback(err, null);
+                    }
+                    callback(null, itemViewsHtml);
                 });
             });
         } else { // no collection found or defined
@@ -280,26 +330,38 @@ var CollectionView = View.extend({
         function isDone() {
             itemViewsCreated++;
             if (collection.length === itemViewsCreated) {
-                callback(html);
+                callback(null, html);
             }
         }
 
         if (!collection.length) {
-            this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+            this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
+                if (err) {
+                    callback(err, null);
+                }
                 self._setEmptyViewStatus(collection, true);
                 if (emptyView) {
-                    emptyView.getHtml(function (html) {
-                        callback(html);
+                    emptyView.getHtml(function (err, html) {
+                        if (err) {
+                            callback(err, null);
+                        }
+                        callback(null, html);
                     });
                 } else {
-                    callback(html);
+                    callback(null, html);
                 }
             });
         } else {
             self._setEmptyViewStatus(collection, false);
             collection.each(function (model) {
-                self._getEmptyItemViewInstance(model, collection, function (itemView) {
-                    itemView.getHtml(function (itemViewHtml) {
+                self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
+                    if (err) {
+                        callback(err, null);
+                    }
+                    itemView.getHtml(function (err, itemViewHtml) {
+                        if (err) {
+                            callback(err, null);
+                        }
                         html += itemViewHtml;
                         isDone();
                     });
@@ -310,7 +372,7 @@ var CollectionView = View.extend({
 
     _getItemViewOptions: function (options) {
         options || (options = {});
-        return _.extend(options, this.itemViewOptions);
+        return _.extend(options, _.result(this, 'itemViewOptions'));
     },
 
     _getEmptyItemViewInstance: function (model, collection, callback) {
@@ -320,23 +382,29 @@ var CollectionView = View.extend({
 
         if (model) {
             if (self._itemViews[model.cid]) {
-                return callback(self._itemViews[model.cid]);
+                return callback(null, self._itemViews[model.cid]);
             }
 
-            this.getItemView(model, collection, function (ItemView) {
+            this.getItemView(model, collection, function (err, ItemView) {
+                if (err) {
+                    callback(err, null);
+                }
                 view = new ItemView(self._getItemViewOptions({ model: model }));
                 self._itemViews[model.cid] = view;
-                callback(view);
+                callback(null, view);
             });
         } else {
             if (collectionDef && collectionDef.emptyView) {
-                return callback(collectionDef.emptyView);
+                return callback(null, collectionDef.emptyView);
             }
 
-            this.getEmptyView(collection, function (EmptyView) {
+            this.getEmptyView(collection, function (err, EmptyView) {
+                if (err) {
+                    callback(err, null);
+                }
                 view = new EmptyView(self._getItemViewOptions());
                 collectionDef.emptyView = view;
-                callback(view);
+                callback(null, view);
             });
         }
     },

@@ -14,7 +14,11 @@ var flexo = (function (global, Backbone, _) {
     };
     
     function noop() {}
-    function defaultCallback() {}
+    function defaultCallback(err, result) {
+        if (err) {
+            throw err;
+        }
+    }
     function getInsertIndex(attr, val, html) {
         var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
         return html.match(regex);
@@ -43,9 +47,10 @@ var flexo = (function (global, Backbone, _) {
 
     var View = Backbone.View.extend({
     
+        childViewOptions: {},
+    
         constructor: function (options) {
-            options || (options = {});
-            _.extend(this, options);
+            this.augment(options || (options = {}));
             this.isServer = flexo.isServer;
             this.isClient = flexo.isClient;
             this.cid = _.uniqueId('view');
@@ -58,19 +63,28 @@ var flexo = (function (global, Backbone, _) {
             var self = this;
             callback = callback || defaultCallback;
             if (this.isServer) {
-                return callback('');
+                return callback(null, '');
             }
     
-            this.getInnerHtml(function (html) {
+            this.getInnerHtml(function (err, html) {
+                if (err) {
+                    return callback(err, null);
+                }
                 self.$el.html(html);
                 self.afterRender();
-                callback(html);
+                callback(null, html);
+                self.trigger('flexo:rendered', self);
             });
+        },
+    
+        augment: function (options) {
+            _.extend(this, options);
         },
     
         attach: function () {
             this.setElement($('[flexo-view="' + this.cid + '"]')[0]);
             this.onAttach();
+            this.trigger('flexo:attached', self);
         },
     
         afterRender: function () {},
@@ -82,6 +96,7 @@ var flexo = (function (global, Backbone, _) {
         remove: function () {
             this.onRemove();
             Backbone.View.prototype.remove.call(this);
+            this.trigger('flexo:removed');
             return this;
         },
     
@@ -89,8 +104,11 @@ var flexo = (function (global, Backbone, _) {
             var self = this;
             callback = callback || defaultCallback;
     
-            this.getInnerHtml(function (innerHtml) {
-                callback(self._wrapperEl(innerHtml));
+            this.getInnerHtml(function (err, innerHtml) {
+                if (err) {
+                    return callback(err, null);
+                }
+                callback(null, self._wrapperEl(innerHtml));
             });
         },
     
@@ -98,11 +116,20 @@ var flexo = (function (global, Backbone, _) {
             var self = this;
             callback = callback || defaultCallback;
     
-            this.getRenderer(function (renderer) {
-                self.serializeData(function (data) {
-                    renderer.execute(data, function (html) {
-                        self.getChildViewsHtml(html, function (html) {
-                            callback(html);
+            this.getRenderer(function (err, renderer) {
+                if (err) {
+                    return callback(err, null);
+                }
+                self.serializeData(function (err, data) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    renderer(data, function (err, html) {
+                        if (err) {
+                            return callback(err, null);
+                        }
+                        self.getChildViewsHtml(html, function (err, html) {
+                            callback(null, html);
                         });
                     });
                 });
@@ -112,63 +139,79 @@ var flexo = (function (global, Backbone, _) {
         getRenderer: function (callback) {
             callback = callback || defaultCallback;
             if (this.renderer) {
-                return callback(this.renderer);
+                return callback(null, this.renderer);
             }
     
             var self = this;
-            this.getRenderingEngine(function (engine) {
+            this.getTemplateEngine(function (err, engine) {
+                if (err) {
+                    return callback(err, null);
+                }
                 var compiledTemplate = engine(self.template);
-                self.renderer = {
-                    execute: function (context, callback) {
-                        callback(compiledTemplate(context));
+                self.renderer = function (context, callback) {
+                    var renderedTemplate = compiledTemplate(context);
+                    try {
+                        renderedTemplate = compiledTemplate(context);
+                        callback(null, compiledTemplate(context));
+                    } catch (err) {
+                        callback(err, null);
                     }
                 };
     
-                callback(self.renderer);
+                callback(null, self.renderer);
             });
         },
     
-        getRenderingEngine: function (callback) {
+        getTemplateEngine: function (callback) {
             callback = callback || defaultCallback;
-            callback(_.template);
+            callback(null, _.template);
         },
     
         serializeData: function (callback) {
             var data = this.model ? this.model.toJSON() : {};
             callback = callback || defaultCallback;
-            this.transformData(data, function (data) {
-                callback(data);
+            this.transformData(data, function (err, data) {
+                if (err) {
+                    return callback(err, null);
+                }
+                callback(null, data);
             });
         },
     
         transformData: function (data, callback) {
             callback = callback || defaultCallback;
-            return callback(data);
+            return callback(null, data);
         },
     
         setElement: function () { // set view el attributes after bb.prototype.setElement is called
             var response = Backbone.View.prototype.setElement.apply(this, arguments);
-            this._setElAttributes(_.extend(this._getAttributes(), this._getFlexoAttributes()));
+            this._setElAttributes(_.extend(this._getAttributes(), this.getAttributes()));
             return response;
         },
     
         getChildViewsHtml: function (htmlBuffer, callback) {
             var self = this;
     
-            this.getChildViews(function (views) {
+            this.getChildViews(function (err, views) {
                 var viewCount = views ? _.size(views) : 0;
                 var viewsLoaded = 0;
                 if (!viewCount) {
-                    return callback(htmlBuffer);
+                    return callback(null, htmlBuffer);
                 }
     
                 _.each(views, function (view, key) {
-                    self.resolveChildView(key, function (view) {
-                        view.getHtml(function (html) {
+                    self.resolveChildView(key, function (err, view) {
+                        if (err) {
+                            return callback(err, null);
+                        }
+                        view.getHtml(function (err, html) {
+                            if (err) {
+                                return callback(err, null);
+                            }
                             htmlBuffer = insertIntoHtmlStr('flexo-child-view', key, html, htmlBuffer);
                             viewsLoaded++;
                             if (viewsLoaded === viewCount) {
-                                callback(htmlBuffer);
+                                callback(null, htmlBuffer);
                             }
                         });
                     });
@@ -177,22 +220,32 @@ var flexo = (function (global, Backbone, _) {
         },
     
         getChildViews: function (callback) {
-            callback(_.result(this, 'childViews'));
+            callback(null, _.result(this, 'childViews'));
         },
     
         addChild: function (viewName, $target, callback) {
             var self = this;
-            this.loadChildView(viewName, function (View) {
-                self.getChildViewOptions(function (options) {
+            this.loadChildView(viewName, function (err, View) {
+                if (err) {
+                    return callback(err, null);
+                }
+                self.getChildViewOptions(function (err, options) {
+                    if (err) {
+                        return callback(err, null);
+                    }
                     self._childViews[viewName] = new View(options);
-                    view.render();
-                    self.appendChildView($target, view, callback);
+                    view.render(function (err, html) {
+                        if (err) {
+                            return callback(err, null);
+                        }
+                        self.appendChildView($target, view, callback);
+                    });
                 });
             });
         },
     
         loadChildView: function (viewName, callback) {
-            callback(Backbone.View);
+            callback(null, Backbone.View);
         },
     
         resolveChildView: function (viewName, callback) {
@@ -200,25 +253,29 @@ var flexo = (function (global, Backbone, _) {
             var View;
             var self = this;
             if (view) {
-                return callback(view);
+                return callback(null, view);
             }
     
             if (!(View = this.childViews[viewName])) {
-                throw 'Child view, ' + viewName + ' could not be resolved.';
+                return callback(new Error('Child view, ' + viewName + ' could not be resolved.'), null);
             }
-            this.getChildViewOptions(function (options) {
+            this.getChildViewOptions(function (err, options) {
+                if (err) {
+                    return callback(err, null);
+                }
                 view = self._childViews[viewName] = new View(options);
-                callback(view);
+                callback(null, view);
             });
         },
     
         appendChildView: function ($target, view, callback) {
             $target.append(view.$el);
-            callback();
+            callback(null, view);
+            this.trigger('flexo:childView:added', view);
         },
     
         getChildViewOptions: function (callback) {
-            callback(_.clone(this.childViewOptions || {}));
+            callback(null, _.clone(_.result(this, 'childViewOptions')));
         },
     
         _childViews: {},
@@ -255,10 +312,10 @@ var flexo = (function (global, Backbone, _) {
                 attrs['class'] = _.result(this, 'className');
             }
     
-            return _.extend(attrs, this._getFlexoAttributes());
+            return _.extend(attrs, this.getAttributes());
         },
     
-        _getFlexoAttributes: function () {
+        getAttributes: function () {
             return {
                 'flexo-view': this.cid
             };
@@ -285,9 +342,15 @@ var flexo = (function (global, Backbone, _) {
             var self = this;
             callback = callback || defaultCallback;
     
-            View.prototype.getInnerHtml.call(this, function (innerHtml) {
-                self._getCollectionHtml(innerHtml, function (collectionInnerHtml) {
-                    callback(collectionInnerHtml);
+            View.prototype.getInnerHtml.call(this, function (err, innerHtml) {
+                if (err) {
+                    return callback(err, null);
+                }
+                self._getCollectionHtml(innerHtml, function (err, collectionInnerHtml) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    callback(null, collectionInnerHtml);
                 });
             });
         },
@@ -296,63 +359,61 @@ var flexo = (function (global, Backbone, _) {
             if (_.isString(nameCollection)) {
                 this.resolveCollection(nameCollection, callback);
             } else if (nameCollection instanceof Backbone.Collection) {
-                callback(nameCollection);
+                callback(null, nameCollection);
             } else {
-                callback(new Backbone.Collection());
+                callback(null, new Backbone.Collection());
             }
         },
     
         resolveCollection: function (name, callback) {
             try {
                 var collection = this.collections[name];
-                callback(collection);
+                callback(null, collection);
             } catch (e) {
-                callback(new Backbone.Collection());
+                callback(e, null);
             }
         },
     
-        getItemView: function (model, collection, callback) { // TODO: throw error if view not found
+        getItemView: function (model, collection, callback) {
             try {
                 var View = this.itemViews[this._findCollection(collection).name];
+                callback(null, View);
             } catch (e) {
-                var View = flexo.View.extend({
-                    template: ''
-                });
-            } finally {
-                callback(View);
+                callback(e, null);
             }
         },
     
         getEmptyView: function (collection, callback) {
             try {
                 var View = this.emptyViews[this._findCollection(collection).name];
+                callback(null, View);
             } catch (e) {
-                var View = flexo.View.extend({
-                    template: ''
-                });
-            } finally {
-                callback(View);
+                callback(e, null);
             }
         },
     
         addItemView: function ($target, view, callback) {
             $target.append(view.$el);
-            callback();
+            callback(null, view);
+            this.trigger('flexo:itemView:added', view);
         },
     
         addEmptyView: function ($target, view, callback) {
             $target.append(view.$el);
-            callback();
+            callback(null, view);
+            this.trigger('flexo:emptyView:added', view);
         },
     
         removeEmptyView: function ($target, view, callback) {
             view.remove();
-            callback();
+            callback(null, true);
+            this.trigger('flexo:itemView:removed');
         },
     
         removeItemView: function ($target, view, callback) {
             view.remove();
-            callback();
+            callback(null, true);
+            this.trigger('flexo:emptyView:removed');
         },
     
         renderCollection: function (collection, callback) {
@@ -366,30 +427,37 @@ var flexo = (function (global, Backbone, _) {
             callback = _.isFunction(collection) ? collection : callback;
             callback = callback || defaultCallback;
     
-            function isDone() {
-                itemViewsAdded++;
-                if (itemViewsToBeAdded === itemViewsAdded) {
-                    callback(); // TODO: trigger collection render
-                }
-            }
-    
             for (var i = 0; i < length; i++) {
                 (function (i) {
                     $target = this.$('[flexo-collection="' + collections[i].name + '"]');
                     if (collections[i].length) {
                         collections[i].each(function (model) {
-                            self.this._addItemView(model, collections[i], isDone);
+                            self.this._addItemView(model, collections[i], function () {
+                                itemViewsAdded++;
+                                if (itemViewsToBeAdded === itemViewsAdded) {
+                                    callback(null, true); // TODO: trigger collection render
+                                    self.trigger('flexo:collection:rendered', collections[i]);
+                                }
+                            });
                         });
                     } else { // empty view
-                        this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                        this._getEmptyItemViewInstance(null, collections[i], function (err, emptyView) {
+                            if (err) {
+                                return callback(err, null);
+                            }
                             if (emptyView) {
                                 emptyView.render(function () {
-                                    self.addEmptyView($target, view, function () { // TODO: trigger add empty view
-                                        callback(); // TODO: trigger collection render
+                                    self.addEmptyView($target, view, function (err, result) { // TODO: trigger add empty view
+                                        if (err) {
+                                            return callback(err, null);
+                                        }
+                                        callback(null, result);
+                                        self.trigger('flexo:collection:rendered', collections[i]);
                                     });
                                 });
                             } else {
-                                callback(); // TODO: trigger collection render
+                                callback(null, true);
+                                self.trigger('flexo:collection:rendered', collections[i]);
                             }
                         });
                     }
@@ -406,6 +474,7 @@ var flexo = (function (global, Backbone, _) {
             for (var k in this._itemViews) {
                 this._itemViews[k].attach();
             }
+            this.trigger('flexo:itemViews:attached');
         },
     
         _listenToCollection: function (collection) {
@@ -419,17 +488,30 @@ var flexo = (function (global, Backbone, _) {
             var self = this;
     
             function addItemView($target, model, collection) {
-                self._getEmptyItemViewInstance(model, collection, function (itemView) {
-                    itemView.render(function () {
-                        self.addItemView($target, itemView, function () {
-                            callback(); // TODO: trigger add event
+                self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    itemView.render(function (err, html) {
+                        if (err) {
+                            return callback(err, null);
+                        }
+                        self.addItemView($target, itemView, function (err, result) {
+                            if (err) {
+                                return callback(err, null);
+                            }
+                            callback(null, result);
+                            self.trigger('flexo:itemView:added', itemView);
                         });
                     });
                 });
             }
     
             if (collectionDef.emptyViewShown) {
-                self.removeEmptyView($target, collectionDef.emptyView, function () {
+                self.removeEmptyView($target, collectionDef.emptyView, function (err, result) {
+                    if (err) {
+                        return callback(err, null);
+                    }
                     addItemView($target, model, collectionDef.collection);
                 });
             } else {
@@ -439,7 +521,11 @@ var flexo = (function (global, Backbone, _) {
     
         _collectionAdd: function (model, collection) {
             var collectionDef = this._findCollection(collection);
-            this._addItemView(model, collectionDef, function () {});
+            this._addItemView(model, collectionDef, function (err, result) {
+                if (err) {
+                    throw err;
+                }
+            });
         },
     
         _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
@@ -448,12 +534,21 @@ var flexo = (function (global, Backbone, _) {
             var view = this._itemViews[model.cid];
             var self = this;
     
-            this.removeItemView($target, view, function () { // TODO: trigger remove event
+            this.removeItemView($target, view, function (err, result) { // TODO: trigger remove event
+                if (err) {
+                    throw err;
+                }
                 if (!collection.length) {
-                    this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                    this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
+                        if (err) {
+                            throw err;
+                        }
                         if (emptyView) {
-                            self.addEmptyView($target, emptyView, function () { // TODO: trigger empty view add event
-    
+                            self.addEmptyView($target, emptyView, function (err, result) { // TODO: trigger empty view add event
+                                if (err) {
+                                    throw err;
+                                }
+                                self.trigger('flexo:emptyView:removed', collection);
                             });
                         }
                     });
@@ -496,7 +591,7 @@ var flexo = (function (global, Backbone, _) {
             function isDone() {
                 collectionsHtmlResolved++;
                 if (collectionsCount === collectionsHtmlResolved) {
-                    callback(self._insertCollectionHtml(collectionNames, collectionHtml, html));
+                    callback(null, self._insertCollectionHtml(collectionNames, collectionHtml, html));
                 }
             }
     
@@ -504,9 +599,15 @@ var flexo = (function (global, Backbone, _) {
                 collectionsCount = collectionNames.length;
                 for (var i = 0; i < collectionNames.length; i++) {
                     (function (i) {
-                        self.getCollection(collectionNames[i], function (collection) {
+                        self.getCollection(collectionNames[i], function (err, collection) {
+                            if (err) {
+                                callback(err, null);
+                            }
                             self._addCollection(collectionNames[i], collection);
-                            self._getItemViewsHtml(collection, function (itemViewsHtml) {
+                            self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
+                                if (err) {
+                                    callback(err, null);
+                                }
                                 collectionHtml[collectionNames[i]] = itemViewsHtml;
                                 isDone();
                             });
@@ -514,9 +615,15 @@ var flexo = (function (global, Backbone, _) {
                     })(i);
                 }
             } else if (this.collection) { // collection is inserted directly under this.el
-                self.getCollection(this.collection, function (collection) {
-                    self._getItemViewsHtml(collection, function (itemViewsHtml) {
-                        callback(itemViewsHtml);
+                self.getCollection(this.collection, function (err, collection) {
+                    if (err) {
+                        callback(err, null);
+                    }
+                    self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
+                        if (err) {
+                            callback(err, null);
+                        }
+                        callback(null, itemViewsHtml);
                     });
                 });
             } else { // no collection found or defined
@@ -549,26 +656,38 @@ var flexo = (function (global, Backbone, _) {
             function isDone() {
                 itemViewsCreated++;
                 if (collection.length === itemViewsCreated) {
-                    callback(html);
+                    callback(null, html);
                 }
             }
     
             if (!collection.length) {
-                this._getEmptyItemViewInstance(null, collection, function (emptyView) {
+                this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
+                    if (err) {
+                        callback(err, null);
+                    }
                     self._setEmptyViewStatus(collection, true);
                     if (emptyView) {
-                        emptyView.getHtml(function (html) {
-                            callback(html);
+                        emptyView.getHtml(function (err, html) {
+                            if (err) {
+                                callback(err, null);
+                            }
+                            callback(null, html);
                         });
                     } else {
-                        callback(html);
+                        callback(null, html);
                     }
                 });
             } else {
                 self._setEmptyViewStatus(collection, false);
                 collection.each(function (model) {
-                    self._getEmptyItemViewInstance(model, collection, function (itemView) {
-                        itemView.getHtml(function (itemViewHtml) {
+                    self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
+                        if (err) {
+                            callback(err, null);
+                        }
+                        itemView.getHtml(function (err, itemViewHtml) {
+                            if (err) {
+                                callback(err, null);
+                            }
                             html += itemViewHtml;
                             isDone();
                         });
@@ -579,7 +698,7 @@ var flexo = (function (global, Backbone, _) {
     
         _getItemViewOptions: function (options) {
             options || (options = {});
-            return _.extend(options, this.itemViewOptions);
+            return _.extend(options, _.result(this, 'itemViewOptions'));
         },
     
         _getEmptyItemViewInstance: function (model, collection, callback) {
@@ -589,23 +708,29 @@ var flexo = (function (global, Backbone, _) {
     
             if (model) {
                 if (self._itemViews[model.cid]) {
-                    return callback(self._itemViews[model.cid]);
+                    return callback(null, self._itemViews[model.cid]);
                 }
     
-                this.getItemView(model, collection, function (ItemView) {
+                this.getItemView(model, collection, function (err, ItemView) {
+                    if (err) {
+                        callback(err, null);
+                    }
                     view = new ItemView(self._getItemViewOptions({ model: model }));
                     self._itemViews[model.cid] = view;
-                    callback(view);
+                    callback(null, view);
                 });
             } else {
                 if (collectionDef && collectionDef.emptyView) {
-                    return callback(collectionDef.emptyView);
+                    return callback(null, collectionDef.emptyView);
                 }
     
-                this.getEmptyView(collection, function (EmptyView) {
+                this.getEmptyView(collection, function (err, EmptyView) {
+                    if (err) {
+                        callback(err, null);
+                    }
                     view = new EmptyView(self._getItemViewOptions());
                     collectionDef.emptyView = view;
-                    callback(view);
+                    callback(null, view);
                 });
             }
         },

@@ -1,8 +1,9 @@
 var View = Backbone.View.extend({
 
+    childViewOptions: {},
+
     constructor: function (options) {
-        options || (options = {});
-        _.extend(this, options);
+        this.augment(options || (options = {}));
         this.isServer = flexo.isServer;
         this.isClient = flexo.isClient;
         this.cid = _.uniqueId('view');
@@ -15,19 +16,28 @@ var View = Backbone.View.extend({
         var self = this;
         callback = callback || defaultCallback;
         if (this.isServer) {
-            return callback('');
+            return callback(null, '');
         }
 
-        this.getInnerHtml(function (html) {
+        this.getInnerHtml(function (err, html) {
+            if (err) {
+                return callback(err, null);
+            }
             self.$el.html(html);
             self.afterRender();
-            callback(html);
+            callback(null, html);
+            self.trigger('flexo:rendered', self);
         });
+    },
+
+    augment: function (options) {
+        _.extend(this, options);
     },
 
     attach: function () {
         this.setElement($('[flexo-view="' + this.cid + '"]')[0]);
         this.onAttach();
+        this.trigger('flexo:attached', self);
     },
 
     afterRender: function () {},
@@ -39,6 +49,7 @@ var View = Backbone.View.extend({
     remove: function () {
         this.onRemove();
         Backbone.View.prototype.remove.call(this);
+        this.trigger('flexo:removed');
         return this;
     },
 
@@ -46,8 +57,11 @@ var View = Backbone.View.extend({
         var self = this;
         callback = callback || defaultCallback;
 
-        this.getInnerHtml(function (innerHtml) {
-            callback(self._wrapperEl(innerHtml));
+        this.getInnerHtml(function (err, innerHtml) {
+            if (err) {
+                return callback(err, null);
+            }
+            callback(null, self._wrapperEl(innerHtml));
         });
     },
 
@@ -55,11 +69,20 @@ var View = Backbone.View.extend({
         var self = this;
         callback = callback || defaultCallback;
 
-        this.getRenderer(function (renderer) {
-            self.serializeData(function (data) {
-                renderer.execute(data, function (html) {
-                    self.getChildViewsHtml(html, function (html) {
-                        callback(html);
+        this.getRenderer(function (err, renderer) {
+            if (err) {
+                return callback(err, null);
+            }
+            self.serializeData(function (err, data) {
+                if (err) {
+                    return callback(err, null);
+                }
+                renderer(data, function (err, html) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    self.getChildViewsHtml(html, function (err, html) {
+                        callback(null, html);
                     });
                 });
             });
@@ -69,63 +92,79 @@ var View = Backbone.View.extend({
     getRenderer: function (callback) {
         callback = callback || defaultCallback;
         if (this.renderer) {
-            return callback(this.renderer);
+            return callback(null, this.renderer);
         }
 
         var self = this;
-        this.getRenderingEngine(function (engine) {
+        this.getTemplateEngine(function (err, engine) {
+            if (err) {
+                return callback(err, null);
+            }
             var compiledTemplate = engine(self.template);
-            self.renderer = {
-                execute: function (context, callback) {
-                    callback(compiledTemplate(context));
+            self.renderer = function (context, callback) {
+                var renderedTemplate = compiledTemplate(context);
+                try {
+                    renderedTemplate = compiledTemplate(context);
+                    callback(null, compiledTemplate(context));
+                } catch (err) {
+                    callback(err, null);
                 }
             };
 
-            callback(self.renderer);
+            callback(null, self.renderer);
         });
     },
 
-    getRenderingEngine: function (callback) {
+    getTemplateEngine: function (callback) {
         callback = callback || defaultCallback;
-        callback(_.template);
+        callback(null, _.template);
     },
 
     serializeData: function (callback) {
         var data = this.model ? this.model.toJSON() : {};
         callback = callback || defaultCallback;
-        this.transformData(data, function (data) {
-            callback(data);
+        this.transformData(data, function (err, data) {
+            if (err) {
+                return callback(err, null);
+            }
+            callback(null, data);
         });
     },
 
     transformData: function (data, callback) {
         callback = callback || defaultCallback;
-        return callback(data);
+        return callback(null, data);
     },
 
     setElement: function () { // set view el attributes after bb.prototype.setElement is called
         var response = Backbone.View.prototype.setElement.apply(this, arguments);
-        this._setElAttributes(_.extend(this._getAttributes(), this._getFlexoAttributes()));
+        this._setElAttributes(_.extend(this._getAttributes(), this.getAttributes()));
         return response;
     },
 
     getChildViewsHtml: function (htmlBuffer, callback) {
         var self = this;
 
-        this.getChildViews(function (views) {
+        this.getChildViews(function (err, views) {
             var viewCount = views ? _.size(views) : 0;
             var viewsLoaded = 0;
             if (!viewCount) {
-                return callback(htmlBuffer);
+                return callback(null, htmlBuffer);
             }
 
             _.each(views, function (view, key) {
-                self.resolveChildView(key, function (view) {
-                    view.getHtml(function (html) {
+                self.resolveChildView(key, function (err, view) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    view.getHtml(function (err, html) {
+                        if (err) {
+                            return callback(err, null);
+                        }
                         htmlBuffer = insertIntoHtmlStr('flexo-child-view', key, html, htmlBuffer);
                         viewsLoaded++;
                         if (viewsLoaded === viewCount) {
-                            callback(htmlBuffer);
+                            callback(null, htmlBuffer);
                         }
                     });
                 });
@@ -134,22 +173,32 @@ var View = Backbone.View.extend({
     },
 
     getChildViews: function (callback) {
-        callback(_.result(this, 'childViews'));
+        callback(null, _.result(this, 'childViews'));
     },
 
     addChild: function (viewName, $target, callback) {
         var self = this;
-        this.loadChildView(viewName, function (View) {
-            self.getChildViewOptions(function (options) {
+        this.loadChildView(viewName, function (err, View) {
+            if (err) {
+                return callback(err, null);
+            }
+            self.getChildViewOptions(function (err, options) {
+                if (err) {
+                    return callback(err, null);
+                }
                 self._childViews[viewName] = new View(options);
-                view.render();
-                self.appendChildView($target, view, callback);
+                view.render(function (err, html) {
+                    if (err) {
+                        return callback(err, null);
+                    }
+                    self.appendChildView($target, view, callback);
+                });
             });
         });
     },
 
     loadChildView: function (viewName, callback) {
-        callback(Backbone.View);
+        callback(null, Backbone.View);
     },
 
     resolveChildView: function (viewName, callback) {
@@ -157,25 +206,29 @@ var View = Backbone.View.extend({
         var View;
         var self = this;
         if (view) {
-            return callback(view);
+            return callback(null, view);
         }
 
         if (!(View = this.childViews[viewName])) {
-            throw 'Child view, ' + viewName + ' could not be resolved.';
+            return callback(new Error('Child view, ' + viewName + ' could not be resolved.'), null);
         }
-        this.getChildViewOptions(function (options) {
+        this.getChildViewOptions(function (err, options) {
+            if (err) {
+                return callback(err, null);
+            }
             view = self._childViews[viewName] = new View(options);
-            callback(view);
+            callback(null, view);
         });
     },
 
     appendChildView: function ($target, view, callback) {
         $target.append(view.$el);
-        callback();
+        callback(null, view);
+        this.trigger('flexo:childView:added', view);
     },
 
     getChildViewOptions: function (callback) {
-        callback(_.clone(this.childViewOptions || {}));
+        callback(null, _.clone(_.result(this, 'childViewOptions')));
     },
 
     _childViews: {},
@@ -212,10 +265,10 @@ var View = Backbone.View.extend({
             attrs['class'] = _.result(this, 'className');
         }
 
-        return _.extend(attrs, this._getFlexoAttributes());
+        return _.extend(attrs, this.getAttributes());
     },
 
-    _getFlexoAttributes: function () {
+    getAttributes: function () {
         return {
             'flexo-view': this.cid
         };

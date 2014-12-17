@@ -4,7 +4,11 @@ var flexo = {
 };
 
 function noop() {}
-function defaultCallback() {}
+function defaultCallback(err, result) {
+    if (err) {
+        throw err;
+    }
+}
 function getInsertIndex(attr, val, html) {
     var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
     return html.match(regex);

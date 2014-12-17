@@ -18,7 +18,7 @@
                 template: 'Hi! My name is <%=fname%> <%=lname%> <div flexo-child-view="foo"></div> More text.',
 
                 serializeData: function (callback) {
-                    callback({ fname: 'Jason', lname: 'Strimpel' })
+                    callback(null, { fname: 'Jason', lname: 'Strimpel' })
                 },
 
                 onRemove: function () {
@@ -41,7 +41,7 @@
             var myView = new MyView({
                 el: 'body'
             });
-            myView.render(function (html) {
+            myView.render(function (err, html) {
                 console.log(html);
             });
 //             myView.render(function (html) {
