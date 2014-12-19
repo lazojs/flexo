@@ -49,6 +49,10 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
         childViewOptions: {},
     
+        attributeNameSpace: 'flexo',
+    
+        eventNameSpace: 'flexo',
+    
         constructor: function (options) {
             this.augment(options || (options = {}));
             this.isServer = flexo.isServer;
@@ -82,9 +86,9 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         attach: function () {
-            this.setElement($('[flexo-view="' + this.cid + '"]')[0]);
+            this.setElement($('[' + this.attributeNameSpace + '-view="' + this.cid + '"]')[0]);
             this.onAttach();
-            this.trigger('flexo:attached', self);
+            this.trigger(this.eventNameSpace + ':attached', self);
         },
     
         afterRender: function () {},
@@ -96,7 +100,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         remove: function () {
             this.onRemove();
             Backbone.View.prototype.remove.call(this);
-            this.trigger('flexo:removed');
+            this.trigger(this.eventNameSpace + ':removed');
             return this;
         },
     
@@ -208,7 +212,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                             if (err) {
                                 return callback(err, null);
                             }
-                            htmlBuffer = insertIntoHtmlStr('flexo-child-view', key, html, htmlBuffer);
+                            htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-child-view', key, html, htmlBuffer);
                             viewsLoaded++;
                             if (viewsLoaded === viewCount) {
                                 callback(null, htmlBuffer);
@@ -271,7 +275,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         appendChildView: function ($target, view, callback) {
             $target.append(view.$el);
             callback(null, view);
-            this.trigger('flexo:childView:added', view);
+            this.trigger(this.eventNameSpace + ':childView:added', view);
         },
     
         getChildViewOptions: function (callback) {
@@ -316,19 +320,15 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         getAttributes: function () {
-            return {
-                'flexo-view': this.cid
-            };
+            var retVal = {};
+            retVal[this.attributeNameSpace + '-view'] = this.cid;
+            return retVal;
         }
     
     });
     flexo.View = View;
 
     var CollectionView = View.extend({
-    
-        _collections: [],
-    
-        _itemViews: {},
     
         constructor: function (options) {
             View.call(this, options);
@@ -395,25 +395,25 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         addItemView: function ($target, view, callback) {
             $target.append(view.$el);
             callback(null, view);
-            this.trigger('flexo:itemView:added', view);
+            this.trigger(this.eventNameSpace + 'itemView:added', view);
         },
     
         addEmptyView: function ($target, view, callback) {
             $target.append(view.$el);
             callback(null, view);
-            this.trigger('flexo:emptyView:added', view);
+            this.trigger(this.eventNameSpace + 'emptyView:added', view);
         },
     
         removeEmptyView: function ($target, view, callback) {
             view.remove();
             callback(null, true);
-            this.trigger('flexo:itemView:removed');
+            this.trigger(this.eventNameSpace + 'itemView:removed');
         },
     
         removeItemView: function ($target, view, callback) {
             view.remove();
             callback(null, true);
-            this.trigger('flexo:emptyView:removed');
+            this.trigger(this.eventNameSpace + 'emptyView:removed');
         },
     
         renderCollection: function (collection, callback) {
@@ -429,14 +429,14 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
             for (var i = 0; i < length; i++) {
                 (function (i) {
-                    $target = this.$('[flexo-collection="' + collections[i].name + '"]');
+                    $target = this.$('[' + self.attributeNameSpace + '-collection-target="' + collections[i].name + '"]');
                     if (collections[i].length) {
                         collections[i].each(function (model) {
                             self.this._addItemView(model, collections[i], function () {
                                 itemViewsAdded++;
                                 if (itemViewsToBeAdded === itemViewsAdded) {
                                     callback(null, true); // TODO: trigger collection render
-                                    self.trigger('flexo:collection:rendered', collections[i]);
+                                    self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
                                 }
                             });
                         });
@@ -452,12 +452,12 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                             return callback(err, null);
                                         }
                                         callback(null, result);
-                                        self.trigger('flexo:collection:rendered', collections[i]);
+                                        self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
                                     });
                                 });
                             } else {
                                 callback(null, true);
-                                self.trigger('flexo:collection:rendered', collections[i]);
+                                self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
                             }
                         });
                     }
@@ -474,8 +474,28 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             for (var k in this._itemViews) {
                 this._itemViews[k].attach();
             }
-            this.trigger('flexo:itemViews:attached');
+            this.trigger(this.eventNameSpace + 'itemViews:attached');
         },
+    
+        getItemViewOptions: function (type, model, collection, options) {
+            return this._getItemViewOptions(options);
+        },
+    
+        createItemView: function (View, model, collection) {
+            var view = new View(this.getItemViewOptions('itemView', model, collection, { model: model }));
+            this._itemViews[model.cid] = view;
+            return view;
+        },
+    
+        createEmptyView: function (View, collection) {
+            var view = new View(thid.getItemViewOptions('emptyView', null, collection, {}));
+            collection.emptyView = view;
+            return view;
+        },
+    
+        _collections: [],
+    
+        _itemViews: {},
     
         _listenToCollection: function (collection) {
             this.listenTo(collection, 'add', this._collectionAdd, this);
@@ -484,7 +504,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         _addItemView: function (model, collectionDef, callback) {
-            var $target = this.$('[flexo-collection="' + collectionDef.name + '"]');
+            var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
             var self = this;
     
             function addItemView($target, model, collection) {
@@ -501,7 +521,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                 return callback(err, null);
                             }
                             callback(null, result);
-                            self.trigger('flexo:itemView:added', itemView);
+                            self.trigger(self.eventNameSpace + 'itemView:added', itemView);
                         });
                     });
                 });
@@ -530,7 +550,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
         _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
             var collectionDef = this._findCollection(collection);
-            var $target = this.$('[flexo-collection="' + collectionDef.name + '"]');
+            var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
             var view = this._itemViews[model.cid];
             var self = this;
     
@@ -548,7 +568,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                 if (err) {
                                     throw err;
                                 }
-                                self.trigger('flexo:emptyView:removed', collection);
+                                self.trigger(self.eventNameSpace + 'emptyView:removed', collection);
                             });
                         }
                     });
@@ -632,13 +652,13 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         _insertCollectionHtml: function (collectionNames, collectionHtml, html) {
-            var match,
-                htmlOpen,
-                htmlClose,
-                self = this;
+            var match;
+            var htmlOpen;
+            var htmlClose;
+            var self = this;
     
             for (var i = 0; i < collectionNames.length; i ++) {
-                match = getInsertIndex('flexo-collection', collectionNames[i], html);
+                match = getInsertIndex(this.attributeNameSpace + '-collection-target', collectionNames[i], html);
                 htmlOpen = html.substr(0, match.index + match[0].length);
                 htmlClose = html.substr(match.index + match[0].length);
                 html = htmlOpen + collectionHtml[collectionNames[i]] + htmlClose;
@@ -715,9 +735,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                     if (err) {
                         callback(err, null);
                     }
-                    view = new ItemView(self._getItemViewOptions({ model: model }));
-                    self._itemViews[model.cid] = view;
-                    callback(null, view);
+                    callback(null, self.createItemView(ItemView, model, collection));
                 });
             } else {
                 if (collectionDef && collectionDef.emptyView) {
@@ -728,28 +746,31 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                     if (err) {
                         callback(err, null);
                     }
-                    view = new EmptyView(self._getItemViewOptions());
-                    collectionDef.emptyView = view;
-                    callback(null, view);
+                    callback(null, self.createEmptyView(EmptyView, collection));
                 });
             }
         },
     
         _setEmptyViewStatus: function (collection, status) {
-            this._findCollection(collection).emptyViewShown = status;
+            if (_.isNull(this._findCollection(collection))) {
+                throw new Error('Could not find collection target in markup.');
+            }
+    
+            collection.emptyViewShown = status;
         },
     
         _findCollectionNames: function (html) {
-            var htmlSubstr = html,
-                match = true,
-                names = [],
-                start = 0;
+            var htmlSubstr = html;
+            var match = true;
+            var names = [];
+            var start = 0;
+            var regex = new RegExp('<[^>]*\\s(?:' + this.attributeNameSpace + '-collection-target=["\']([^"\']*)["\'])[^>]*>');
     
             // TODO: there has to better way than looping and creating substrings
             // someone please help me; i suck at regexes
             while (match) {
                 htmlSubstr = htmlSubstr.substr(start);
-                match = htmlSubstr.match(/<[^>]*\s(?:flexo-collection=["']([^"']*)["'])[^>]*>/);
+                match = htmlSubstr.match(regex);
                 if (match) {
                     names.push(match[1]);
                     start = match[0].length + match.index;

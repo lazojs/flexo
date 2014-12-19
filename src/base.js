@@ -2,6 +2,10 @@ var View = Backbone.View.extend({
 
     childViewOptions: {},
 
+    attributeNameSpace: 'flexo',
+
+    eventNameSpace: 'flexo',
+
     constructor: function (options) {
         this.augment(options || (options = {}));
         this.isServer = flexo.isServer;
@@ -35,9 +39,9 @@ var View = Backbone.View.extend({
     },
 
     attach: function () {
-        this.setElement($('[flexo-view="' + this.cid + '"]')[0]);
+        this.setElement($('[' + this.attributeNameSpace + '-view="' + this.cid + '"]')[0]);
         this.onAttach();
-        this.trigger('flexo:attached', self);
+        this.trigger(this.eventNameSpace + ':attached', self);
     },
 
     afterRender: function () {},
@@ -49,7 +53,7 @@ var View = Backbone.View.extend({
     remove: function () {
         this.onRemove();
         Backbone.View.prototype.remove.call(this);
-        this.trigger('flexo:removed');
+        this.trigger(this.eventNameSpace + ':removed');
         return this;
     },
 
@@ -161,7 +165,7 @@ var View = Backbone.View.extend({
                         if (err) {
                             return callback(err, null);
                         }
-                        htmlBuffer = insertIntoHtmlStr('flexo-child-view', key, html, htmlBuffer);
+                        htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-child-view', key, html, htmlBuffer);
                         viewsLoaded++;
                         if (viewsLoaded === viewCount) {
                             callback(null, htmlBuffer);
@@ -224,7 +228,7 @@ var View = Backbone.View.extend({
     appendChildView: function ($target, view, callback) {
         $target.append(view.$el);
         callback(null, view);
-        this.trigger('flexo:childView:added', view);
+        this.trigger(this.eventNameSpace + ':childView:added', view);
     },
 
     getChildViewOptions: function (callback) {
@@ -269,9 +273,9 @@ var View = Backbone.View.extend({
     },
 
     getAttributes: function () {
-        return {
-            'flexo-view': this.cid
-        };
+        var retVal = {};
+        retVal[this.attributeNameSpace + '-view'] = this.cid;
+        return retVal;
     }
 
 });
