@@ -3,12 +3,33 @@ var flexo = {
     isServer: false
 };
 
-function noop() {}
-function defaultCallback(err, result) {
-    if (err) {
-        throw err;
-    }
+function getDefaultOptions() {
+    var defaultOptions = {
+        success: function () {},
+        error: function (err) {
+            throw err;
+        }
+    };
 }
+
+function getErrorOption(options) {
+    return { error: options.error || function (err) {
+        throw err;
+    }};
+}
+
+function setOptions(options) {
+    var defaultOptions = {
+        success: function () {},
+        error: function (err) {
+            throw err;
+        }
+    };
+
+    return _.defaults(options, defaultOptions);
+}
+
+function noop() {}
 function getInsertIndex(attr, val, html) {
     var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
     return html.match(regex);

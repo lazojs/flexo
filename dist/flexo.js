@@ -13,12 +13,33 @@ var flexo = (function (global, Backbone, _) {
         isServer: false
     };
     
-    function noop() {}
-    function defaultCallback(err, result) {
-        if (err) {
-            throw err;
-        }
+    function getDefaultOptions() {
+        var defaultOptions = {
+            success: function () {},
+            error: function (err) {
+                throw err;
+            }
+        };
     }
+    
+    function getErrorOption(options) {
+        return { error: options.error || function (err) {
+            throw err;
+        }};
+    }
+    
+    function setOptions(options) {
+        var defaultOptions = {
+            success: function () {},
+            error: function (err) {
+                throw err;
+            }
+        };
+    
+        return _.defaults(options, defaultOptions);
+    }
+    
+    function noop() {}
     function getInsertIndex(attr, val, html) {
         var regex = new RegExp('<[^<]*' + attr + '+=["||\']' + val + '["||\']+.*?>');
         return html.match(regex);
@@ -63,22 +84,21 @@ var flexo = (function (global, Backbone, _) {
             this.delegateEvents();
         },
     
-        render: function (callback) {
+        render: function (options) {
             var self = this;
-            callback = callback || defaultCallback;
+            options = setOptions(options);
             if (this.isServer) {
-                return callback(null, '');
+                return options.success(null, '');
             }
     
-            this.getInnerHtml(function (err, html) {
-                if (err) {
-                    return callback(err, null);
+            this.getInnerHtml(_.extend(getErrorOption(options), {
+                success: function (html) {
+                    self.$el.html(html);
+                    self.afterRender();
+                    options.success(html);
+                    self.trigger('flexo:rendered', self);
                 }
-                self.$el.html(html);
-                self.afterRender();
-                callback(null, html);
-                self.trigger('flexo:rendered', self);
-            });
+            }));
         },
     
         augment: function (options) {
@@ -104,87 +124,74 @@ var flexo = (function (global, Backbone, _) {
             return this;
         },
     
-        getHtml: function (callback) {
+        getHtml: function (options) {
             var self = this;
-            callback = callback || defaultCallback;
+            options = setOptions(options);
     
-            this.getInnerHtml(function (err, innerHtml) {
-                if (err) {
-                    return callback(err, null);
+            this.getInnerHtml(_.extend(getErrorOption(options), {
+                success: function (innerHtml) {
+                    options.success(self._wrapperEl(innerHtml));
                 }
-                callback(null, self._wrapperEl(innerHtml));
-            });
+            }));
         },
     
-        getInnerHtml: function (callback) {
+        getInnerHtml: function (options) {
             var self = this;
-            callback = callback || defaultCallback;
+            options = setOptions(options);
     
-            this.getRenderer(function (err, renderer) {
-                if (err) {
-                    return callback(err, null);
-                }
-                self.serializeData(function (err, data) {
-                    if (err) {
-                        return callback(err, null);
-                    }
-                    renderer(data, function (err, html) {
-                        if (err) {
-                            return callback(err, null);
+            this.getRenderer(_.extend(getErrorOption(options), {
+                success: function (renderer) {
+                    self.serializeData(_.extend(getErrorOption(options), {
+                        success: function (data) {
+                            renderer(data, _.extend(getErrorOption(options), {
+                                success: function (html) {
+                                    self.getChildViewsHtml(html, options);
+                                }
+                            }));
                         }
-                        self.getChildViewsHtml(html, function (err, html) {
-                            callback(null, html);
-                        });
-                    });
-                });
-            });
+                    }));
+                }
+            }));
         },
     
-        getRenderer: function (callback) {
-            callback = callback || defaultCallback;
+        getRenderer: function (options) {
+            options = setOptions(options);
             if (this.renderer) {
-                return callback(null, this.renderer);
+                return options.success(this.renderer);
             }
     
             var self = this;
-            this.getTemplateEngine(function (err, engine) {
-                if (err) {
-                    return callback(err, null);
+            this.getTemplateEngine(_.extend(getErrorOption(options), {
+                success: function (engine) {
+                    var compiledTemplate = engine(self.template);
+                    self.renderer = function (context, options) {
+                        var renderedTemplate = compiledTemplate(context);
+                        try {
+                            renderedTemplate = compiledTemplate(context);
+                            options.success(compiledTemplate(context));
+                        } catch (err) {
+                            options.error(err);
+                        }
+                    };
+                    options.success(self.renderer);
                 }
-                var compiledTemplate = engine(self.template);
-                self.renderer = function (context, callback) {
-                    var renderedTemplate = compiledTemplate(context);
-                    try {
-                        renderedTemplate = compiledTemplate(context);
-                        callback(null, compiledTemplate(context));
-                    } catch (err) {
-                        callback(err, null);
-                    }
-                };
-    
-                callback(null, self.renderer);
-            });
+            }));
         },
     
-        getTemplateEngine: function (callback) {
-            callback = callback || defaultCallback;
-            callback(null, _.template);
+        getTemplateEngine: function (options) {
+            options = setOptions(options);
+            options.success(_.template);
         },
     
-        serializeData: function (callback) {
+        serializeData: function (options) {
             var data = this.model ? this.model.toJSON() : {};
-            callback = callback || defaultCallback;
-            this.transformData(data, function (err, data) {
-                if (err) {
-                    return callback(err, null);
-                }
-                callback(null, data);
-            });
+            options = setOptions(options);
+            this.transformData(data, options);
         },
     
-        transformData: function (data, callback) {
-            callback = callback || defaultCallback;
-            return callback(null, data);
+        transformData: function (data, options) {
+            options = setOptions(options);
+            options.success(data);
         },
     
         setElement: function () { // set view el attributes after bb.prototype.setElement is called
@@ -193,93 +200,94 @@ var flexo = (function (global, Backbone, _) {
             return response;
         },
     
-        getChildViewsHtml: function (htmlBuffer, callback) {
+        getChildViewsHtml: function (htmlBuffer, options) {
             var self = this;
+            options = setOptions(options);
     
-            this.getChildViews(function (err, views) {
-                var viewCount = views ? _.size(views) : 0;
-                var viewsLoaded = 0;
-                if (!viewCount) {
-                    return callback(null, htmlBuffer);
-                }
-    
-                _.each(views, function (view, key) {
-                    self.resolveChildView(key, function (err, view) {
-                        if (err) {
-                            return callback(err, null);
-                        }
-                        view.getHtml(function (err, html) {
-                            if (err) {
-                                return callback(err, null);
-                            }
-                            htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-child-view', key, html, htmlBuffer);
-                            viewsLoaded++;
-                            if (viewsLoaded === viewCount) {
-                                callback(null, htmlBuffer);
-                            }
-                        });
-                    });
-                });
-            });
-        },
-    
-        getChildViews: function (callback) {
-            callback(null, _.result(this, 'childViews'));
-        },
-    
-        addChild: function (viewName, $target, callback) {
-            var self = this;
-            this.loadChildView(viewName, function (err, View) {
-                if (err) {
-                    return callback(err, null);
-                }
-                self.getChildViewOptions(function (err, options) {
-                    if (err) {
-                        return callback(err, null);
+            this.getChildViews(_.extend(getErrorOption(options), {
+                success: function (views) {
+                    var viewCount = views ? _.size(views) : 0;
+                    var viewsLoaded = 0;
+                    if (!viewCount) {
+                        return options.success(htmlBuffer);
                     }
-                    self._childViews[viewName] = new View(options);
-                    view.render(function (err, html) {
-                        if (err) {
-                            return callback(err, null);
-                        }
-                        self.appendChildView($target, view, callback);
+    
+                    _.each(views, function (view, key) {
+                        self.resolveChildView(key, _.extend(getErrorOption(options), {
+                            success: function (view) {
+                                view.getHtml(_.extend(getErrorOption(options), {
+                                    success: function (html) {
+                                        htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-child-view', key, html, htmlBuffer);
+                                        viewsLoaded++;
+                                        if (viewsLoaded === viewCount) {
+                                            options.success(htmlBuffer);
+                                        }
+                                    }
+                                }));
+                            }
+                        }));
                     });
-                });
-            });
+                }
+            }));
         },
     
-        loadChildView: function (viewName, callback) {
-            callback(null, Backbone.View);
+        getChildViews: function (options) {
+            options = setOptions(options);
+            options.success(_.result(this, 'childViews'));
         },
     
-        resolveChildView: function (viewName, callback) {
+        addChild: function (viewName, $target, options) {
+            var self = this;
+            options = setOptions(options);
+    
+            this.loadChildView(viewName, _.extend(getErrorOption(options), {
+                success: function (View) {
+                    self.getChildViewOptions(_.extend(getErrorOption(options), {
+                        success: function (childViewOptions) {
+                            self._childViews[viewName] = new View(childViewOptions);
+                            self.appendChildView($target, view, options);
+                        }
+                    }));
+                }
+            }));
+        },
+    
+        loadChildView: function (viewName, options) {
+            options = setOptions(options);
+            options.success(Backbone.View);
+        },
+    
+        resolveChildView: function (viewName, options) {
             var view = this._childViews[viewName];
             var View;
             var self = this;
+            options = setOptions(options);
+    
             if (view) {
-                return callback(null, view);
+                return options.success(view);
             }
     
             if (!(View = this.childViews[viewName])) {
-                return callback(new Error('Child view, ' + viewName + ' could not be resolved.'), null);
+                return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
             }
-            this.getChildViewOptions(function (err, options) {
-                if (err) {
-                    return callback(err, null);
+            this.getChildViewOptions(_.extend(getErrorOption(options), {
+                success: function (childViewOptions) {
+                    view = self._childViews[viewName] = new View(childViewOptions);
+                    options.success(view);
                 }
-                view = self._childViews[viewName] = new View(options);
-                callback(null, view);
-            });
+            }));
         },
     
-        appendChildView: function ($target, view, callback) {
+        appendChildView: function ($target, view, options) {
+            options = setOptions(options);
             $target.append(view.$el);
-            callback(null, view);
+            options.success(view);
             this.trigger(this.eventNameSpace + ':childView:added', view);
         },
     
-        getChildViewOptions: function (callback) {
-            callback(null, _.clone(_.result(this, 'childViewOptions')));
+        getChildViewOptions: function (options) {
+            options = setOptions(options);
+            options.success(_.clone(_.result(this, 'childViewOptions')));
         },
     
         _childViews: {},
