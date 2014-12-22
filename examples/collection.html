@@ -14,8 +14,8 @@
 
                 tagName: 'li',
 
-                serializeData: function (callback) {
-                    callback(null, this.model.toJSON())
+                serializeData: function (options) {
+                    options.success(this.model.toJSON());
                 },
 
                 template: '<%=name%>'
@@ -28,10 +28,10 @@
                     'data-foo': 'bar'
                 },
 
-                template: '<ul flexo-collection="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul flexo-collection="bar"></ul>',
+                template: '<ul flexo-collection-target="foo"></ul><p>Hi! My name is <%=fname%> <%=lname%>.<p><ul flexo-collection-target="bar"></ul>',
 
-                serializeData: function (callback) {
-                    callback(null, { fname: 'Jason', lname: 'Strimpel' })
+                serializeData: function (options) {
+                    options.success({ fname: 'Jason', lname: 'Strimpel' });
                 },
 
                 itemViews: {
@@ -59,8 +59,13 @@
             var myView = new MyView({
                 el: 'body'
             });
-            myView.render(function (html) {
-                console.log(html);
+            myView.render({
+                error: function (err) {
+                    console.log(err.stack)
+                },
+                success: function (html) {
+                    console.log(html);
+                }
             });
 
             setTimeout(function () {

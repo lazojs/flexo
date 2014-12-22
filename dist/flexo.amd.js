@@ -346,85 +346,93 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             return this;
         },
     
-        getInnerHtml: function (callback) {
+        getInnerHtml: function (options) {
             var self = this;
-            callback = callback || defaultCallback;
+            options = setOptions(options);
     
-            View.prototype.getInnerHtml.call(this, function (err, innerHtml) {
-                if (err) {
-                    return callback(err, null);
+            View.prototype.getInnerHtml.call(this, _.extend(getErrorOption(options), {
+                success: function (innerHtml) {
+                    self._getCollectionHtml(innerHtml, _.extend(getErrorOption(options), {
+                        success: function (collectionInnerHtml) {
+                            options.success(collectionInnerHtml);
+                        }
+                    }));
                 }
-                self._getCollectionHtml(innerHtml, function (err, collectionInnerHtml) {
-                    if (err) {
-                        return callback(err, null);
-                    }
-                    callback(null, collectionInnerHtml);
-                });
-            });
+            }));
         },
     
-        getCollection: function (nameCollection, callback) {
+        getCollection: function (nameCollection, options) {
+            options = setOptions(options);
+    
             if (_.isString(nameCollection)) {
-                this.resolveCollection(nameCollection, callback);
+                this.resolveCollection(nameCollection, options);
             } else if (nameCollection instanceof Backbone.Collection) {
-                callback(null, nameCollection);
+                options.success(nameCollection);
             } else {
-                callback(null, new Backbone.Collection());
+                options.success(new Backbone.Collection());
             }
         },
     
-        resolveCollection: function (name, callback) {
+        resolveCollection: function (name, options) {
+            options = setOptions(options);
+    
             try {
                 var collection = this.collections[name];
-                callback(null, collection);
+                options.success(collection);
             } catch (e) {
-                callback(e, null);
+                options.error(e);
             }
         },
     
-        getItemView: function (model, collection, callback) {
+        getItemView: function (model, collection, options) {
+            options = setOptions(options);
             try {
                 var View = this.itemViews[this._findCollection(collection).name];
-                callback(null, View);
+                options.success(View);
             } catch (e) {
-                callback(e, null);
+                options.error(e);
             }
         },
     
-        getEmptyView: function (collection, callback) {
+        getEmptyView: function (collection, options) {
+            options = setOptions(options);
             try {
                 var View = this.emptyViews[this._findCollection(collection).name];
-                callback(null, View);
+                options.success(View);
             } catch (e) {
-                callback(e, null);
+                options.error(e);
             }
         },
     
-        addItemView: function ($target, view, callback) {
+        addItemView: function ($target, view, options) {
+            options = setOptions(options);
             $target.append(view.$el);
-            callback(null, view);
+            options.success(view);
             this.trigger(this.eventNameSpace + 'itemView:added', view);
         },
     
-        addEmptyView: function ($target, view, callback) {
+        addEmptyView: function ($target, view, options) {
+            options = setOptions(options);
             $target.append(view.$el);
-            callback(null, view);
+            options.success(view);
             this.trigger(this.eventNameSpace + 'emptyView:added', view);
         },
     
-        removeEmptyView: function ($target, view, callback) {
+        removeEmptyView: function ($target, view, options) {
+            options = setOptions(options);
             view.remove();
-            callback(null, true);
+            options.success(true);
             this.trigger(this.eventNameSpace + 'itemView:removed');
         },
     
-        removeItemView: function ($target, view, callback) {
+        removeItemView: function ($target, view, options) {
+            options = setOptions(options);
             view.remove();
-            callback(null, true);
+            options.success(true);
             this.trigger(this.eventNameSpace + 'emptyView:removed');
         },
     
-        renderCollection: function (collection, callback) {
+        renderCollection: function (collection, options) {
             var collections = !_.isFunction(collection) ? [this._findCollection(collection)] : this._collections;
             var length = collections.length;
             var $target;
@@ -432,42 +440,40 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             var itemViewsAdded = 0;
             var self = this;
     
-            callback = _.isFunction(collection) ? collection : callback;
-            callback = callback || defaultCallback;
+            options = collection instanceof Backbone.Collection ? collection : options;
+            options = setOptions(options);
     
             for (var i = 0; i < length; i++) {
                 (function (i) {
                     $target = this.$('[' + self.attributeNameSpace + '-collection-target="' + collections[i].name + '"]');
                     if (collections[i].length) {
                         collections[i].each(function (model) {
-                            self.this._addItemView(model, collections[i], function () {
-                                itemViewsAdded++;
-                                if (itemViewsToBeAdded === itemViewsAdded) {
-                                    callback(null, true); // TODO: trigger collection render
-                                    self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                            self.this._addItemView(model, collections[i], _.extend(getErrorOption(options), {
+                                success: function () {
+                                    itemViewsAdded++;
+                                    if (itemViewsToBeAdded === itemViewsAdded) {
+                                        options.success(true);
+                                        self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                    }
                                 }
-                            });
+                            }));
                         });
                     } else { // empty view
-                        this._getEmptyItemViewInstance(null, collections[i], function (err, emptyView) {
-                            if (err) {
-                                return callback(err, null);
-                            }
-                            if (emptyView) {
-                                emptyView.render(function () {
-                                    self.addEmptyView($target, view, function (err, result) { // TODO: trigger add empty view
-                                        if (err) {
-                                            return callback(err, null);
+                        this._getEmptyItemViewInstance(null, collections[i], _.extend(getErrorOption(options), {
+                            success: function () {
+                                if (emptyView) {
+                                    emptyView.render(_.extend(getErrorOption(options), {
+                                        success: function (result) {
+                                            options.success(result);
+                                            self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
                                         }
-                                        callback(null, result);
-                                        self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
-                                    });
-                                });
-                            } else {
-                                callback(null, true);
-                                self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                    }));
+                                } else {
+                                    options.success(true);
+                                    self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                }
                             }
-                        });
+                        }));
                     }
                 })(i);
             }
@@ -511,37 +517,34 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             this.listenTo(collection, 'reset', this._collectionReset, this);
         },
     
-        _addItemView: function (model, collectionDef, callback) {
+        _addItemView: function (model, collectionDef, options) {
             var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
             var self = this;
+            options = setOptions(options);
     
             function addItemView($target, model, collection) {
-                self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
-                    if (err) {
-                        return callback(err, null);
-                    }
-                    itemView.render(function (err, html) {
-                        if (err) {
-                            return callback(err, null);
-                        }
-                        self.addItemView($target, itemView, function (err, result) {
-                            if (err) {
-                                return callback(err, null);
+                self._getEmptyItemViewInstance(model, collection, _.extend(getErrorOption(options), {
+                    success: function (itemView) {
+                        itemView.render(_.extend(getErrorOption(options), {
+                            success: function (html) {
+                                self.addItemView($target, itemView, _.extend(getErrorOption(options), {
+                                    success: function (result) {
+                                        options.success(result);
+                                        self.trigger(self.eventNameSpace + 'itemView:added', itemView);
+                                    }
+                                }));
                             }
-                            callback(null, result);
-                            self.trigger(self.eventNameSpace + 'itemView:added', itemView);
-                        });
-                    });
-                });
+                        }));
+                    }
+                }));
             }
     
             if (collectionDef.emptyViewShown) {
-                self.removeEmptyView($target, collectionDef.emptyView, function (err, result) {
-                    if (err) {
-                        return callback(err, null);
+                self.removeEmptyView($target, collectionDef.emptyView, _.extend(getErrorOption(options), {
+                    success: function (result) {
+                        addItemView($target, model, collectionDef.collection);
                     }
-                    addItemView($target, model, collectionDef.collection);
-                });
+                }));
             } else {
                 addItemView($target, model, collectionDef.collection);
             }
@@ -561,27 +564,26 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
             var view = this._itemViews[model.cid];
             var self = this;
+            var options = setOptions({});
     
-            this.removeItemView($target, view, function (err, result) { // TODO: trigger remove event
-                if (err) {
-                    throw err;
-                }
-                if (!collection.length) {
-                    this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
-                        if (err) {
-                            throw err;
-                        }
-                        if (emptyView) {
-                            self.addEmptyView($target, emptyView, function (err, result) { // TODO: trigger empty view add event
-                                if (err) {
-                                    throw err;
+            this.removeItemView($target, view, _.extend(getErrorOption(options), {
+                success: function (result) {
+                    if (!collection.length) {
+                        this._getEmptyItemViewInstance(null, collection, _.extend(getErrorOption(options), {
+                            success: function (emptyView) {
+                                if (emptyView) {
+                                    self.addEmptyView($target, emptyView, _.extend(getErrorOption(options), {
+                                        success: function (result) {
+                                            options.success(result);
+                                            self.trigger(self.eventNameSpace + 'emptyView:removed', collection);
+                                        }
+                                    }));
                                 }
-                                self.trigger(self.eventNameSpace + 'emptyView:removed', collection);
-                            });
-                        }
-                    });
+                            }
+                        }));
+                    }
                 }
-            });
+            }));
         },
     
         _collectionReset: function (collection) {
@@ -608,18 +610,18 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             return null;
         },
     
-        _getCollectionHtml: function (html, callback) {
+        _getCollectionHtml: function (html, options) {
             var self = this;
             var collectionNames = this._findCollectionNames(html);
             var collectionHtml = {};
             var collectionsCount = 0;
             var collectionsHtmlResolved = 0;
-            callback = callback || defaultCallback;
+            options = setOptions(options);
     
             function isDone() {
                 collectionsHtmlResolved++;
                 if (collectionsCount === collectionsHtmlResolved) {
-                    callback(null, self._insertCollectionHtml(collectionNames, collectionHtml, html));
+                    options.success(self._insertCollectionHtml(collectionNames, collectionHtml, html));
                 }
             }
     
@@ -627,35 +629,31 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                 collectionsCount = collectionNames.length;
                 for (var i = 0; i < collectionNames.length; i++) {
                     (function (i) {
-                        self.getCollection(collectionNames[i], function (err, collection) {
-                            if (err) {
-                                callback(err, null);
+                        self.getCollection(collectionNames[i], _.extend(getErrorOption(options), {
+                            success: function (collection) {
+                                self._addCollection(collectionNames[i], collection);
+                                self._getItemViewsHtml(collection, _.extend(getErrorOption(options), {
+                                    success: function (itemViewsHtml) {
+                                        collectionHtml[collectionNames[i]] = itemViewsHtml;
+                                        isDone();
+                                    }
+                                }));
                             }
-                            self._addCollection(collectionNames[i], collection);
-                            self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
-                                if (err) {
-                                    callback(err, null);
-                                }
-                                collectionHtml[collectionNames[i]] = itemViewsHtml;
-                                isDone();
-                            });
-                        });
+                        }));
                     })(i);
                 }
             } else if (this.collection) { // collection is inserted directly under this.el
-                self.getCollection(this.collection, function (err, collection) {
-                    if (err) {
-                        callback(err, null);
+                self.getCollection(this.collection, _.extend(getErrorOption(options), {
+                    success: function (collection) {
+                        self._getItemViewsHtml(collection, _.extend(getErrorOption(options), {
+                            success: function (itemViewsHtml) {
+                                options.success(itemViewsHtml);
+                            }
+                        }));
                     }
-                    self._getItemViewsHtml(collection, function (err, itemViewsHtml) {
-                        if (err) {
-                            callback(err, null);
-                        }
-                        callback(null, itemViewsHtml);
-                    });
-                });
+                }));
             } else { // no collection found or defined
-                return html;
+                return options.success(html);
             }
         },
     
@@ -675,51 +673,48 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             return html;
         },
     
-        _getItemViewsHtml: function (collection, callback) {
+        _getItemViewsHtml: function (collection, options) {
             var html = '';
             var self = this;
             var view;
             var itemViewsCreated = 0;
+            options = setOptions(options);
     
             function isDone() {
                 itemViewsCreated++;
                 if (collection.length === itemViewsCreated) {
-                    callback(null, html);
+                    options.success(html);
                 }
             }
     
             if (!collection.length) {
-                this._getEmptyItemViewInstance(null, collection, function (err, emptyView) {
-                    if (err) {
-                        callback(err, null);
+                this._getEmptyItemViewInstance(null, collection, _.extend(getErrorOption(options), {
+                    success: function (emptyView) {
+                        self._setEmptyViewStatus(collection, true);
+                        if (emptyView) {
+                            emptyView.getHtml(_.extend(getErrorOption(options), {
+                                success: function (html) {
+                                    options.success(html);
+                                }
+                            }));
+                        } else {
+                            options.success(html);
+                        }
                     }
-                    self._setEmptyViewStatus(collection, true);
-                    if (emptyView) {
-                        emptyView.getHtml(function (err, html) {
-                            if (err) {
-                                callback(err, null);
-                            }
-                            callback(null, html);
-                        });
-                    } else {
-                        callback(null, html);
-                    }
-                });
+                }));
             } else {
                 self._setEmptyViewStatus(collection, false);
                 collection.each(function (model) {
-                    self._getEmptyItemViewInstance(model, collection, function (err, itemView) {
-                        if (err) {
-                            callback(err, null);
+                    self._getEmptyItemViewInstance(model, collection, _.extend(getErrorOption(options), {
+                        success: function (itemView) {
+                            itemView.getHtml(_.extend(getErrorOption(options), {
+                                success: function (itemViewHtml) {
+                                    html += itemViewHtml;
+                                    isDone();
+                                }
+                            }));
                         }
-                        itemView.getHtml(function (err, itemViewHtml) {
-                            if (err) {
-                                callback(err, null);
-                            }
-                            html += itemViewHtml;
-                            isDone();
-                        });
-                    });
+                    }));
                 });
             }
         },
@@ -729,33 +724,32 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             return _.extend(options, _.result(this, 'itemViewOptions'));
         },
     
-        _getEmptyItemViewInstance: function (model, collection, callback) {
+        _getEmptyItemViewInstance: function (model, collection, options) {
             var self = this;
             var view;
             var collectionDef = this._findCollection(collection);
+            options = setOptions(options);
     
             if (model) {
                 if (self._itemViews[model.cid]) {
-                    return callback(null, self._itemViews[model.cid]);
+                    return options.success(self._itemViews[model.cid]);
                 }
     
-                this.getItemView(model, collection, function (err, ItemView) {
-                    if (err) {
-                        callback(err, null);
+                this.getItemView(model, collection, _.extend(getErrorOption(options), {
+                    success: function (ItemView) {
+                        options.success(self.createItemView(ItemView, model, collection));
                     }
-                    callback(null, self.createItemView(ItemView, model, collection));
-                });
+                }));
             } else {
                 if (collectionDef && collectionDef.emptyView) {
-                    return callback(null, collectionDef.emptyView);
+                    return options.success(collectionDef.emptyView);
                 }
     
-                this.getEmptyView(collection, function (err, EmptyView) {
-                    if (err) {
-                        callback(err, null);
+                this.getEmptyView(collection, _.extend(getErrorOption(options), {
+                    success: function (EmptyView) {
+                        options.success(self.createEmptyView(EmptyView, collection));
                     }
-                    callback(null, self.createEmptyView(EmptyView, collection));
-                });
+                }));
             }
         },
     
