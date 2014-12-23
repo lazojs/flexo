@@ -75,10 +75,10 @@ var flexo = (function (global, Backbone, _) {
         eventNameSpace: 'flexo',
     
         constructor: function (options) {
+            this.cid = _.uniqueId('view');
             this.augment(options || (options = {}));
             this.isServer = flexo.isServer;
             this.isClient = flexo.isClient;
-            this.cid = _.uniqueId('view');
             this._ensureElement();
             this.initialize.apply(this, arguments);
             this.delegateEvents();
@@ -120,7 +120,7 @@ var flexo = (function (global, Backbone, _) {
             }
     
             for (var k in this._childViews) {
-                this._childViews[k].attach(this.$('[' + this.attributeNameSpace + '-child-view-id="' + this._childViews[k].cid + '"]'), {
+                this._childViews[k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this._childViews[k].cid + '"]'), {
                     error: options.error,
                     success: options.success
                 });
