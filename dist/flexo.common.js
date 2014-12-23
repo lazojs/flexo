@@ -132,7 +132,14 @@ var View = Backbone.View.extend({
 
     onAttach: function () {},
 
+    getAttributes: function () {
+        var retVal = {};
+        retVal[this.attributeNameSpace + '-view'] = this.cid;
+        return retVal;
+    },
+
     remove: function () {
+        this._onRemove();
         this.onRemove();
         Backbone.View.prototype.remove.call(this);
         this.trigger(this.eventNameSpace + ':removed');
@@ -142,7 +149,6 @@ var View = Backbone.View.extend({
     getHtml: function (options) {
         var self = this;
         options = setOptions(options);
-
         this.getInnerHtml(_.extend(getErrorOption(options), {
             success: function (innerHtml) {
                 options.success(self._wrapperEl(innerHtml));
@@ -153,7 +159,6 @@ var View = Backbone.View.extend({
     getInnerHtml: function (options) {
         var self = this;
         options = setOptions(options);
-
         this.getRenderer(_.extend(getErrorOption(options), {
             success: function (renderer) {
                 self.serializeData(_.extend(getErrorOption(options), {
@@ -257,12 +262,8 @@ var View = Backbone.View.extend({
 
         this.loadChildView(viewName, _.extend(getErrorOption(options), {
             success: function (View) {
-                self.getChildViewOptions(_.extend(getErrorOption(options), {
-                    success: function (childViewOptions) {
-                        self._childViews[viewName] = new View(childViewOptions);
-                        self.appendChildView($target, view, options);
-                    }
-                }));
+                var view = self._childViews[viewName] = new View(self.getChildViewOptions());
+                self.appendChildView($target, view, options);
             }
         }));
     },
@@ -275,7 +276,6 @@ var View = Backbone.View.extend({
     resolveChildView: function (viewName, options) {
         var view = this._childViews[viewName];
         var View;
-        var self = this;
         options = setOptions(options);
 
         if (view) {
@@ -285,12 +285,9 @@ var View = Backbone.View.extend({
         if (!(View = this.childViews[viewName])) {
             return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
         }
-        this.getChildViewOptions(_.extend(getErrorOption(options), {
-            success: function (childViewOptions) {
-                view = self._childViews[viewName] = new View(childViewOptions);
-                options.success(view);
-            }
-        }));
+
+        view = this._childViews[viewName] = new View(this.getChildViewOptions());
+        options.success(view);
     },
 
     appendChildView: function ($target, view, options) {
@@ -301,11 +298,14 @@ var View = Backbone.View.extend({
     },
 
     getChildViewOptions: function (options) {
-        options = setOptions(options);
-        options.success(_.clone(_.result(this, 'childViewOptions')));
+        return _.extend({}, options, this._getChildViewOptions());
     },
 
     _childViews: {},
+
+    _getChildViewOptions: function () {
+        return _.clone(_.result(this, 'childViewOptions'));
+    },
 
     _wrapperEl: function (html) {
         var elHtmlOpen;
@@ -342,10 +342,13 @@ var View = Backbone.View.extend({
         return _.extend(attrs, this.getAttributes());
     },
 
-    getAttributes: function () {
-        var retVal = {};
-        retVal[this.attributeNameSpace + '-view'] = this.cid;
-        return retVal;
+    _onRemove: function () {
+        for (var k in this._childViews) {
+            this._childViews[k].remove();
+            delete this._childViews[k];
+        }
+
+        return this;
     }
 
 });
@@ -355,10 +358,12 @@ var CollectionView = View.extend({
 
     constructor: function (options) {
         View.call(this, options);
-        this.collections || (this.collections = {});
+        this.collections || (this.collections = []);
+        this._collections || (this._collections = []);
         this.collection || (this.collection = {});
+        this._itemViews || (this._itemViews = {});
+        this._emptyViews || (this._emptyViews = {});
         this.itemViewOptions || (this.itemViewOptions = {});
-        return this;
     },
 
     getInnerHtml: function (options) {
@@ -551,13 +556,15 @@ var CollectionView = View.extend({
 
     createEmptyView: function (View, collection) {
         var view = new View(thid.getItemViewOptions('emptyView', null, collection, {}));
-        collection.emptyView = view;
+        this._emptyViews[collection.cid] = view;
         return view;
     },
 
-    _collections: [],
+    _collections: null,
 
-    _itemViews: {},
+    _itemViews: null,
+
+    _emptyViews: null,
 
     _listenToCollection: function (collection) {
         this.listenTo(collection, 'add', this._collectionAdd, this);
@@ -587,8 +594,8 @@ var CollectionView = View.extend({
             }));
         }
 
-        if (collectionDef.emptyViewShown) {
-            self.removeEmptyView($target, collectionDef.emptyView, _.extend(getErrorOption(options), {
+        if (this._emptyViews[collectionDef.cid] && this._emptyViews[collectionDef.cid].emptyViewShown) {
+            this.removeEmptyView($target, this._emptyViews[collectionDef.collection.cid], _.extend(getErrorOption(options), {
                 success: function (result) {
                     addItemView($target, model, collectionDef.collection);
                 }
@@ -769,7 +776,7 @@ var CollectionView = View.extend({
 
     _getItemViewOptions: function (options) {
         options || (options = {});
-        return _.extend(options, _.result(this, 'itemViewOptions'));
+        return _.extend({}, options, _.result(this, 'itemViewOptions'));
     },
 
     _getEmptyItemViewInstance: function (model, collection, options) {
@@ -779,7 +786,7 @@ var CollectionView = View.extend({
         options = setOptions(options);
 
         if (model) {
-            if (self._itemViews[model.cid]) {
+            if (this._itemViews[model.cid]) {
                 return options.success(self._itemViews[model.cid]);
             }
 
@@ -789,8 +796,8 @@ var CollectionView = View.extend({
                 }
             }));
         } else {
-            if (collectionDef && collectionDef.emptyView) {
-                return options.success(collectionDef.emptyView);
+            if (this._emptyViews[collectionDef.colleciton.cid]) {
+                return options.success(this._emptyViews[collectionDef.colleciton.cid]);
             }
 
             this.getEmptyView(collection, _.extend(getErrorOption(options), {
@@ -806,7 +813,9 @@ var CollectionView = View.extend({
             throw new Error('Could not find collection target in markup.');
         }
 
-        collection.emptyViewShown = status;
+        if (this._emptyViews[collection.cid]){
+            this._emptyViews[collection.cid].emptyViewShown = status;
+        }
     },
 
     _findCollectionNames: function (html) {
@@ -828,6 +837,21 @@ var CollectionView = View.extend({
         }
 
         return names;
+    },
+
+    _onRemove: function () {
+        View.prototype._onRemove.call(this);
+        for (var k in this._itemViews) {
+            this._itemViews[k].remove();
+            delete this._itemViews[k];
+        }
+
+        for (var j in this._emptyViews) {
+            this._emptyViews[j].remove();
+            delete this._emptyViews[j];
+        }
+
+        return this;
     }
 
 });

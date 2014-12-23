@@ -2,10 +2,12 @@ var CollectionView = View.extend({
 
     constructor: function (options) {
         View.call(this, options);
-        this.collections || (this.collections = {});
+        this.collections || (this.collections = []);
+        this._collections || (this._collections = []);
         this.collection || (this.collection = {});
+        this._itemViews || (this._itemViews = {});
+        this._emptyViews || (this._emptyViews = {});
         this.itemViewOptions || (this.itemViewOptions = {});
-        return this;
     },
 
     getInnerHtml: function (options) {
@@ -198,13 +200,15 @@ var CollectionView = View.extend({
 
     createEmptyView: function (View, collection) {
         var view = new View(thid.getItemViewOptions('emptyView', null, collection, {}));
-        collection.emptyView = view;
+        this._emptyViews[collection.cid] = view;
         return view;
     },
 
-    _collections: [],
+    _collections: null,
 
-    _itemViews: {},
+    _itemViews: null,
+
+    _emptyViews: null,
 
     _listenToCollection: function (collection) {
         this.listenTo(collection, 'add', this._collectionAdd, this);
@@ -234,8 +238,8 @@ var CollectionView = View.extend({
             }));
         }
 
-        if (collectionDef.emptyViewShown) {
-            self.removeEmptyView($target, collectionDef.emptyView, _.extend(getErrorOption(options), {
+        if (this._emptyViews[collectionDef.cid] && this._emptyViews[collectionDef.cid].emptyViewShown) {
+            this.removeEmptyView($target, this._emptyViews[collectionDef.collection.cid], _.extend(getErrorOption(options), {
                 success: function (result) {
                     addItemView($target, model, collectionDef.collection);
                 }
@@ -416,7 +420,7 @@ var CollectionView = View.extend({
 
     _getItemViewOptions: function (options) {
         options || (options = {});
-        return _.extend(options, _.result(this, 'itemViewOptions'));
+        return _.extend({}, options, _.result(this, 'itemViewOptions'));
     },
 
     _getEmptyItemViewInstance: function (model, collection, options) {
@@ -426,7 +430,7 @@ var CollectionView = View.extend({
         options = setOptions(options);
 
         if (model) {
-            if (self._itemViews[model.cid]) {
+            if (this._itemViews[model.cid]) {
                 return options.success(self._itemViews[model.cid]);
             }
 
@@ -436,8 +440,8 @@ var CollectionView = View.extend({
                 }
             }));
         } else {
-            if (collectionDef && collectionDef.emptyView) {
-                return options.success(collectionDef.emptyView);
+            if (this._emptyViews[collectionDef.colleciton.cid]) {
+                return options.success(this._emptyViews[collectionDef.colleciton.cid]);
             }
 
             this.getEmptyView(collection, _.extend(getErrorOption(options), {
@@ -453,7 +457,9 @@ var CollectionView = View.extend({
             throw new Error('Could not find collection target in markup.');
         }
 
-        collection.emptyViewShown = status;
+        if (this._emptyViews[collection.cid]){
+            this._emptyViews[collection.cid].emptyViewShown = status;
+        }
     },
 
     _findCollectionNames: function (html) {
@@ -475,6 +481,21 @@ var CollectionView = View.extend({
         }
 
         return names;
+    },
+
+    _onRemove: function () {
+        View.prototype._onRemove.call(this);
+        for (var k in this._itemViews) {
+            this._itemViews[k].remove();
+            delete this._itemViews[k];
+        }
+
+        for (var j in this._emptyViews) {
+            this._emptyViews[j].remove();
+            delete this._emptyViews[j];
+        }
+
+        return this;
     }
 
 });

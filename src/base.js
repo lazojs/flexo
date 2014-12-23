@@ -65,7 +65,14 @@ var View = Backbone.View.extend({
 
     onAttach: function () {},
 
+    getAttributes: function () {
+        var retVal = {};
+        retVal[this.attributeNameSpace + '-view'] = this.cid;
+        return retVal;
+    },
+
     remove: function () {
+        this._onRemove();
         this.onRemove();
         Backbone.View.prototype.remove.call(this);
         this.trigger(this.eventNameSpace + ':removed');
@@ -75,7 +82,6 @@ var View = Backbone.View.extend({
     getHtml: function (options) {
         var self = this;
         options = setOptions(options);
-
         this.getInnerHtml(_.extend(getErrorOption(options), {
             success: function (innerHtml) {
                 options.success(self._wrapperEl(innerHtml));
@@ -86,7 +92,6 @@ var View = Backbone.View.extend({
     getInnerHtml: function (options) {
         var self = this;
         options = setOptions(options);
-
         this.getRenderer(_.extend(getErrorOption(options), {
             success: function (renderer) {
                 self.serializeData(_.extend(getErrorOption(options), {
@@ -190,12 +195,8 @@ var View = Backbone.View.extend({
 
         this.loadChildView(viewName, _.extend(getErrorOption(options), {
             success: function (View) {
-                self.getChildViewOptions(_.extend(getErrorOption(options), {
-                    success: function (childViewOptions) {
-                        self._childViews[viewName] = new View(childViewOptions);
-                        self.appendChildView($target, view, options);
-                    }
-                }));
+                var view = self._childViews[viewName] = new View(self.getChildViewOptions());
+                self.appendChildView($target, view, options);
             }
         }));
     },
@@ -208,7 +209,6 @@ var View = Backbone.View.extend({
     resolveChildView: function (viewName, options) {
         var view = this._childViews[viewName];
         var View;
-        var self = this;
         options = setOptions(options);
 
         if (view) {
@@ -218,12 +218,9 @@ var View = Backbone.View.extend({
         if (!(View = this.childViews[viewName])) {
             return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
         }
-        this.getChildViewOptions(_.extend(getErrorOption(options), {
-            success: function (childViewOptions) {
-                view = self._childViews[viewName] = new View(childViewOptions);
-                options.success(view);
-            }
-        }));
+
+        view = this._childViews[viewName] = new View(this.getChildViewOptions());
+        options.success(view);
     },
 
     appendChildView: function ($target, view, options) {
@@ -234,11 +231,14 @@ var View = Backbone.View.extend({
     },
 
     getChildViewOptions: function (options) {
-        options = setOptions(options);
-        options.success(_.clone(_.result(this, 'childViewOptions')));
+        return _.extend({}, options, this._getChildViewOptions());
     },
 
     _childViews: {},
+
+    _getChildViewOptions: function () {
+        return _.clone(_.result(this, 'childViewOptions'));
+    },
 
     _wrapperEl: function (html) {
         var elHtmlOpen;
@@ -275,10 +275,13 @@ var View = Backbone.View.extend({
         return _.extend(attrs, this.getAttributes());
     },
 
-    getAttributes: function () {
-        var retVal = {};
-        retVal[this.attributeNameSpace + '-view'] = this.cid;
-        return retVal;
+    _onRemove: function () {
+        for (var k in this._childViews) {
+            this._childViews[k].remove();
+            delete this._childViews[k];
+        }
+
+        return this;
     }
 
 });
