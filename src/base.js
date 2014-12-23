@@ -37,10 +37,26 @@ var View = Backbone.View.extend({
         _.extend(this, options);
     },
 
-    attach: function () {
-        this.setElement($('[' + this.attributeNameSpace + '-view="' + this.cid + '"]')[0]);
+    attach: function (el, options) {
+        options = setOptions(options);
+        this.setElement(el);
         this.onAttach();
-        this.trigger(this.eventNameSpace + ':attached', self);
+        this.trigger(this.eventNameSpace + ':attached', this);
+        this.attachChildViews(options);
+    },
+
+    attachChildViews: function (options) {
+        options = setOptions(options);
+        if (!_.size(this._childViews)) {
+            return options.success(true);
+        }
+
+        for (var k in this._childViews) {
+            this._childViews[k].attach(this.$('[' + this.attributeNameSpace + '-child-view-id="' + this._childViews[k].cid + '"]'), {
+                error: options.error,
+                success: options.success
+            });
+        }
     },
 
     afterRender: function () {},

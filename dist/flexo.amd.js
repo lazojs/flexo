@@ -105,10 +105,26 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             _.extend(this, options);
         },
     
-        attach: function () {
-            this.setElement($('[' + this.attributeNameSpace + '-view="' + this.cid + '"]')[0]);
+        attach: function (el, options) {
+            options = setOptions(options);
+            this.setElement(el);
             this.onAttach();
-            this.trigger(this.eventNameSpace + ':attached', self);
+            this.trigger(this.eventNameSpace + ':attached', this);
+            this.attachChildViews(options);
+        },
+    
+        attachChildViews: function (options) {
+            options = setOptions(options);
+            if (!_.size(this._childViews)) {
+                return options.success(true);
+            }
+    
+            for (var k in this._childViews) {
+                this._childViews[k].attach(this.$('[' + this.attributeNameSpace + '-child-view-id="' + this._childViews[k].cid + '"]'), {
+                    error: options.error,
+                    success: options.success
+                });
+            }
         },
     
         afterRender: function () {},
@@ -408,28 +424,28 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             options = setOptions(options);
             $target.append(view.$el);
             options.success(view);
-            this.trigger(this.eventNameSpace + 'itemView:added', view);
+            this.trigger(this.eventNameSpace + ':itemView:added', view);
         },
     
         addEmptyView: function ($target, view, options) {
             options = setOptions(options);
             $target.append(view.$el);
             options.success(view);
-            this.trigger(this.eventNameSpace + 'emptyView:added', view);
+            this.trigger(this.eventNameSpace + ':emptyView:added', view);
         },
     
         removeEmptyView: function ($target, view, options) {
             options = setOptions(options);
             view.remove();
             options.success(true);
-            this.trigger(this.eventNameSpace + 'itemView:removed');
+            this.trigger(this.eventNameSpace + ':itemView:removed');
         },
     
         removeItemView: function ($target, view, options) {
             options = setOptions(options);
             view.remove();
             options.success(true);
-            this.trigger(this.eventNameSpace + 'emptyView:removed');
+            this.trigger(this.eventNameSpace + ':emptyView:removed');
         },
     
         renderCollection: function (collection, options) {
@@ -453,7 +469,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                     itemViewsAdded++;
                                     if (itemViewsToBeAdded === itemViewsAdded) {
                                         options.success(true);
-                                        self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                        self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
                                     }
                                 }
                             }));
@@ -465,12 +481,12 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                     emptyView.render(_.extend(getErrorOption(options), {
                                         success: function (result) {
                                             options.success(result);
-                                            self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                            self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
                                         }
                                     }));
                                 } else {
                                     options.success(true);
-                                    self.trigger(self.eventNameSpace + 'collection:rendered', collections[i]);
+                                    self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
                                 }
                             }
                         }));
@@ -479,16 +495,49 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             }
         },
     
-        attach: function () {
-            flexo.View.prototype.call(this);
-            this.attachItemViews();
+        attach: function (el, options) {
+            var loaded = 0;
+            options = setOptions(options);
+    
+            function onSuccess() {
+                loaded++;
+                if (loaded === 2) {
+                    options.success(true);
+                }
+            }
+    
+            flexo.View.prototype.attach.call(this, el, {
+                error: options.error,
+                success: onSuccess
+            });
+            this.attachItemViews({
+                error: options.error,
+                success: onSuccess
+            });
         },
     
-        attachItemViews: function () {
-            for (var k in this._itemViews) {
-                this._itemViews[k].attach();
+        attachItemViews: function (options) {
+            var expected = _.size(this._itemViews);
+            var loaded = 0;
+            options = setOptions(options);
+    
+            if (!expected) {
+                options.success(true);
             }
-            this.trigger(this.eventNameSpace + 'itemViews:attached');
+    
+            for (var k in this._itemViews) {
+                this._itemViews[k].attach(this.$('[' + this.attributeNameSpace + '-model-id="' + this._itemViews[k].cid + '"]'), {
+                    error: options.error,
+                    success: function () {
+                        loaded++;
+                        if (loaded === expected) {
+                            options.success(true);
+                        }
+                    }
+                });
+            }
+            options.success(true);
+            this.trigger(this.eventNameSpace + ':itemViews:attached');
         },
     
         getItemViewOptions: function (type, model, collection, options) {
@@ -530,7 +579,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                 self.addItemView($target, itemView, _.extend(getErrorOption(options), {
                                     success: function (result) {
                                         options.success(result);
-                                        self.trigger(self.eventNameSpace + 'itemView:added', itemView);
+                                        self.trigger(self.eventNameSpace + ':itemView:added', itemView);
                                     }
                                 }));
                             }
@@ -575,7 +624,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                                     self.addEmptyView($target, emptyView, _.extend(getErrorOption(options), {
                                         success: function (result) {
                                             options.success(result);
-                                            self.trigger(self.eventNameSpace + 'emptyView:removed', collection);
+                                            self.trigger(self.eventNameSpace + ':emptyView:removed', collection);
                                         }
                                     }));
                                 }
