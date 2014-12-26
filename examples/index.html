@@ -15,7 +15,7 @@
                     'data-foo': 'bar'
                 },
 
-                template: 'Hi! My name is <%=fname%> <%=lname%> <div flexo-child-view="foo"></div> More text.',
+                template: 'Hi! My name is <%=fname%> <%=lname%> <div flexo-view="foo"></div> More text.',
 
                 serializeData: function (options) {
                     options.success({ fname: 'Jason', lname: 'Strimpel' });
@@ -25,10 +25,10 @@
                     console.log('you are outa here!');
                 },
 
-                childViews: {
+                children: {
                     foo: flexo.View.extend({
-                        template: 'I am the child view!!!<div flexo-child-view="bar"></div> Even more text.',
-                        childViews: {
+                        template: 'I am the child view!!!<div flexo-view="bar"></div> Even more text.',
+                        children: {
                             bar: flexo.View.extend({
                                 template: 'I am the grandchild view!!!'
                             })

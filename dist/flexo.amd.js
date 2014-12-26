@@ -76,6 +76,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
         constructor: function (options) {
             this.cid = _.uniqueId('view');
+            this.children = _.size(this.children) ? _.clone(this.children) : {};
             this.augment(options || (options = {}));
             this.isServer = flexo.isServer;
             this.isClient = flexo.isClient;
@@ -114,15 +115,22 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         attachChildViews: function (options) {
+            var expected = _.size(this.children);
+            var attached = 0;
             options = setOptions(options);
-            if (!_.size(this._childViews)) {
+            if (!expected) {
                 return options.success(true);
             }
     
-            for (var k in this._childViews) {
-                this._childViews[k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this._childViews[k].cid + '"]'), {
+            for (var k in this.children) {
+                this.children[k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this.children[k].cid + '"]'), {
                     error: options.error,
-                    success: options.success
+                    success: function () {
+                        attached++;
+                        if (attached === expected) {
+                            options.success(true);
+                        }
+                    }
                 });
             }
         },
@@ -238,7 +246,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                             success: function (view) {
                                 view.getHtml(_.extend(getErrorOption(options), {
                                     success: function (html) {
-                                        htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-child-view', key, html, htmlBuffer);
+                                        htmlBuffer = insertIntoHtmlStr(self.attributeNameSpace + '-view', key, html, htmlBuffer);
                                         viewsLoaded++;
                                         if (viewsLoaded === viewCount) {
                                             options.success(htmlBuffer);
@@ -254,7 +262,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
         getChildViews: function (options) {
             options = setOptions(options);
-            options.success(_.result(this, 'childViews'));
+            options.success(_.result(this, 'children'));
         },
     
         addChild: function (viewName, $target, options) {
@@ -263,7 +271,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
             this.loadChildView(viewName, _.extend(getErrorOption(options), {
                 success: function (View) {
-                    var view = self._childViews[viewName] = new View(self.getChildViewOptions());
+                    var view = self.children[viewName] = new View(self.getChildViewOptions());
                     self.appendChildView($target, view, options);
                 }
             }));
@@ -275,19 +283,19 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         resolveChildView: function (viewName, options) {
-            var view = this._childViews[viewName];
+            var view = this.children[viewName];
             var View;
             options = setOptions(options);
     
-            if (view) {
+            if (view.cid) {
                 return options.success(view);
             }
     
-            if (!(View = this.childViews[viewName])) {
+            if (!(View = this.children[viewName])) {
                 return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
             }
     
-            view = this._childViews[viewName] = new View(this.getChildViewOptions());
+            view = this.children[viewName] = new View(this.getChildViewOptions());
             options.success(view);
         },
     
@@ -302,10 +310,9 @@ define(['underscore', 'backbone'], function (_, Backbone) {
             return _.extend({}, options, this._getChildViewOptions());
         },
     
-        _childViews: {},
-    
-        _getChildViewOptions: function () {
-            return _.clone(_.result(this, 'childViewOptions'));
+        _getChildViewOptions: function (options) {
+            options || (options = {});
+            return _.extend({}, options, _.result(this, 'childViewOptions'));
         },
     
         _wrapperEl: function (html) {
@@ -344,9 +351,9 @@ define(['underscore', 'backbone'], function (_, Backbone) {
         },
     
         _onRemove: function () {
-            for (var k in this._childViews) {
-                this._childViews[k].remove();
-                delete this._childViews[k];
+            for (var k in this.children) {
+                this.children[k].remove();
+                delete this.children[k];
             }
     
             return this;
