@@ -46,11 +46,21 @@ module.exports = function (grunt) {
                 src: 'dist/flexo.common.js',
                 dest: 'dist/flexo.common.js'
             }
+        },
+        mocha: {
+            test: {
+                src: 'test/**/*.html'
+            },
+            options: {
+                run: true,
+                reporter: 'Spec'
+            }
         }
     });
 
     grunt.loadNpmTasks('grunt-preprocess');
     grunt.loadNpmTasks('grunt-contrib-concat');
+    grunt.loadNpmTasks('grunt-mocha');
     grunt.registerTask('default', [
         'preprocess:namespaced', 'concat:namespaced', 'preprocess:amd', 'concat:amd', 'preprocess:commonjs', 'concat:commonjs'
     ]);
