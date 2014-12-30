@@ -8,8 +8,6 @@
 <body>
     <!-- mocha reporter results -->
     <div id="mocha"></div>
-    <!-- flexo spec output -->
-    <div id="flexo"></div>
     <!-- mocha -->
     <script src="../node_modules/grunt-mocha/node_modules/mocha/mocha.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" charset="utf-8">
@@ -17,6 +15,8 @@
     </script>
     <!-- chai -->
     <script src="../node_modules/chai/chai.js" type="text/javascript" charset="utf-8"></script>
+    <script src="../node_modules/sinon/pkg/sinon.js" type="text/javascript" charset="utf-8"></script>
+    <script src="../node_modules/sinon-chai/lib/sinon-chai.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" charset="utf-8">
         var expect = chai.expect;
     </script>
@@ -27,7 +27,7 @@
     <script src="../dist/flexo.js" type="text/javascript" charset="utf-8"></script>
     <!-- specs -->
     <script src="specs/base.js" type="text/javascript" charset="utf-8"></script>
-    <script src="specs/collection.js" type="text/javascript" charset="utf-8"></script>
+    <!-- script src="specs/collection.js" type="text/javascript" charset="utf-8"></script -->
     <!-- run mocha -->
     <script type="text/javascript" charset="utf-8">
         mocha.globals(['flexo']).run();

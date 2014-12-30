@@ -67,7 +67,7 @@ if (flexo.isServer) {
 
 var View = Backbone.View.extend({
 
-    childViewOptions: {},
+    childOptions: {},
 
     attributeNameSpace: 'flexo',
 
@@ -122,7 +122,7 @@ var View = Backbone.View.extend({
         }
 
         for (var k in this.children) {
-            this.children[k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this.children[k].cid + '"]'), {
+            this.children[k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this.children[k].cid + '"]')[0], {
                 error: options.error,
                 success: function () {
                     attached++;
@@ -142,7 +142,7 @@ var View = Backbone.View.extend({
 
     getAttributes: function () {
         var retVal = {};
-        retVal[this.attributeNameSpace + '-view'] = this.cid;
+        retVal[this.attributeNameSpace + '-view-id'] = this.cid;
         return retVal;
     },
 
@@ -173,7 +173,7 @@ var View = Backbone.View.extend({
                     success: function (data) {
                         renderer(data, _.extend(getErrorOption(options), {
                             success: function (html) {
-                                self.getChildViewsHtml(html, options);
+                                self._getChildrenHtml(html, options);
                             }
                         }));
                     }
@@ -228,11 +228,61 @@ var View = Backbone.View.extend({
         return response;
     },
 
-    getChildViewsHtml: function (htmlBuffer, options) {
+    getChildren: function (options) {
+        options = setOptions(options);
+        options.success(_.result(this, 'children'));
+    },
+
+    addChild: function (viewName, $target, options) {
         var self = this;
         options = setOptions(options);
 
-        this.getChildViews(_.extend(getErrorOption(options), {
+        this.loadChild(viewName, _.extend(getErrorOption(options), {
+            success: function (View) {
+                var view = self.children[viewName] = new View(self.getChildOptions());
+                self.appendChild($target, view, options);
+            }
+        }));
+    },
+
+    loadChild: function (viewName, options) {
+        options = setOptions(options);
+        options.success(View);
+    },
+
+    resolveChild: function (viewName, options) {
+        var view = this.children[viewName];
+        var View;
+        options = setOptions(options);
+
+        if (view.cid) {
+            return options.success(view);
+        }
+
+        if (!(View = this.children[viewName])) {
+            return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
+        }
+
+        view = this.children[viewName] = new View(this.getChildOptions());
+        options.success(view);
+    },
+
+    appendChild: function ($target, view, options) {
+        options = setOptions(options);
+        $target.append(view.$el);
+        options.success(view);
+        this.trigger(this.eventNameSpace + ':child:added', view);
+    },
+
+    getChildOptions: function (options) {
+        return _.extend({}, options, this._getChildOptions());
+    },
+
+    _getChildrenHtml: function (htmlBuffer, options) {
+        var self = this;
+        options = setOptions(options);
+
+        this.getChildren(_.extend(getErrorOption(options), {
             success: function (views) {
                 var viewCount = views ? _.size(views) : 0;
                 var viewsLoaded = 0;
@@ -241,7 +291,7 @@ var View = Backbone.View.extend({
                 }
 
                 _.each(views, function (view, key) {
-                    self.resolveChildView(key, _.extend(getErrorOption(options), {
+                    self.resolveChild(key, _.extend(getErrorOption(options), {
                         success: function (view) {
                             view.getHtml(_.extend(getErrorOption(options), {
                                 success: function (html) {
@@ -259,59 +309,9 @@ var View = Backbone.View.extend({
         }));
     },
 
-    getChildViews: function (options) {
-        options = setOptions(options);
-        options.success(_.result(this, 'children'));
-    },
-
-    addChild: function (viewName, $target, options) {
-        var self = this;
-        options = setOptions(options);
-
-        this.loadChildView(viewName, _.extend(getErrorOption(options), {
-            success: function (View) {
-                var view = self.children[viewName] = new View(self.getChildViewOptions());
-                self.appendChildView($target, view, options);
-            }
-        }));
-    },
-
-    loadChildView: function (viewName, options) {
-        options = setOptions(options);
-        options.success(Backbone.View);
-    },
-
-    resolveChildView: function (viewName, options) {
-        var view = this.children[viewName];
-        var View;
-        options = setOptions(options);
-
-        if (view.cid) {
-            return options.success(view);
-        }
-
-        if (!(View = this.children[viewName])) {
-            return options.error(new Error('Child view, ' + viewName + ' could not be resolved.'));
-        }
-
-        view = this.children[viewName] = new View(this.getChildViewOptions());
-        options.success(view);
-    },
-
-    appendChildView: function ($target, view, options) {
-        options = setOptions(options);
-        $target.append(view.$el);
-        options.success(view);
-        this.trigger(this.eventNameSpace + ':childView:added', view);
-    },
-
-    getChildViewOptions: function (options) {
-        return _.extend({}, options, this._getChildViewOptions());
-    },
-
-    _getChildViewOptions: function (options) {
+    _getChildOptions: function (options) {
         options || (options = {});
-        return _.extend({}, options, _.result(this, 'childViewOptions'));
+        return _.extend({}, options, _.result(this, 'childOptions'));
     },
 
     _wrapperEl: function (html) {
