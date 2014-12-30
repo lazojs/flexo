@@ -61,7 +61,7 @@ var CollectionView = View.extend({
     getEmptyView: function (collection, options) {
         options = setOptions(options);
         try {
-            var View = this.emptyViews[this._findCollection(collection).name];
+            var View = this.emptyViews && this.emptyViews[this._findCollection(collection).name];
             options.success(View);
         } catch (e) {
             options.error(e);
@@ -97,44 +97,58 @@ var CollectionView = View.extend({
     },
 
     renderCollection: function (collection, options) {
-        var collections = !_.isFunction(collection) ? [this._findCollection(collection)] : this._collections;
-        var length = collections.length;
-        var $target;
-        var itemViewsToBeAdded = _.reduce(collections, function (memo, collection) { return memo + collection.length; }, 0);
-        var itemViewsAdded = 0;
+        var collectionDefs = arguments.length === 2 ? [this._findCollection(collection)] : this._collections;
+        var length = collectionDefs.length;
+        var viewsToBeAdded = _.reduce(collectionDefs, function (memo, def) { return memo + def.collection.length; }, 0);
+        var viewsAdded = 0;
         var self = this;
+        var $target;
 
-        options = collection instanceof Backbone.Collection ? collection : options;
+        function isDone() {
+            if (viewsToBeAdded === viewsAdded) {
+                options.success(true);
+            }
+        }
+
+        options = collection instanceof Backbone.Collection ? options : collection;
         options = setOptions(options);
 
         for (var i = 0; i < length; i++) {
             (function (i) {
-                $target = this.$('[' + self.attributeNameSpace + '-collection-target="' + collections[i].name + '"]');
-                if (collections[i].length) {
-                    collections[i].each(function (model) {
-                        self.this._addItemView(model, collections[i], _.extend(getErrorOption(options), {
+                $target = self.$('[' + self.attributeNameSpace + '-collection-target="' + collectionDefs[i].name + '"]');
+                $target.html('');
+                if (collectionDefs[i].collection.length) {
+                    collectionDefs[i].collection.each(function (model) {
+                        self._addItemView(model, collectionDefs[i].collection, _.extend(getErrorOption(options), {
                             success: function () {
-                                itemViewsAdded++;
-                                if (itemViewsToBeAdded === itemViewsAdded) {
-                                    options.success(true);
-                                    self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
-                                }
+                                viewsAdded++;
+                                isDone();
+                                self.trigger(self.eventNameSpace + ':collection:rendered', collectionDefs[i].collection);
                             }
                         }));
                     });
                 } else { // empty view
-                    this._getEmptyItemViewInstance(null, collections[i], _.extend(getErrorOption(options), {
-                        success: function () {
+                    viewsToBeAdded++;
+                    self._getEmptyItemViewInstance(null, collectionDefs[i].collection, _.extend(getErrorOption(options), {
+                        success: function (emptyView) {
                             if (emptyView) {
-                                emptyView.render(_.extend(getErrorOption(options), {
-                                    success: function (result) {
-                                        options.success(result);
-                                        self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
-                                    }
-                                }));
+                                self.addEmptyView($target, emptyView, {
+                                    success: function () {
+                                        emptyView.render(_.extend(getErrorOption(options), {
+                                            success: function (result) {
+                                                viewsAdded++;
+                                                isDone();
+                                                self.trigger(self.eventNameSpace + ':collection:rendered', collectionDefs[i].collection);
+                                            },
+                                            error: options.error
+                                        }));
+                                    },
+                                    error: options.error
+                                });
                             } else {
-                                options.success(true);
-                                self.trigger(self.eventNameSpace + ':collection:rendered', collections[i]);
+                                viewsAdded++;
+                                isDone();
+                                self.trigger(self.eventNameSpace + ':collection:rendered', collectionDefs[i].collection);
                             }
                         }
                     }));
@@ -158,34 +172,36 @@ var CollectionView = View.extend({
             error: options.error,
             success: onSuccess
         });
-        this.attachItemViews({
+        this.attachItemEmptyViews({
             error: options.error,
             success: onSuccess
         });
     },
 
-    attachItemViews: function (options) {
-        var expected = _.size(this._itemViews);
+    attachItemEmptyViews: function (options) {
+        var self = this;
+        var expected = _.size(this._itemViews) + _.size(this._emptyViews);
         var loaded = 0;
+        var viewTypes = ['_itemViews', '_emptyViews'];
         options = setOptions(options);
-
         if (!expected) {
             options.success(true);
         }
 
-        for (var k in this._itemViews) {
-            this._itemViews[k].attach(this.$('[' + this.attributeNameSpace + '-model-id="' + this._itemViews[k].cid + '"]'), {
-                error: options.error,
-                success: function () {
-                    loaded++;
-                    if (loaded === expected) {
-                        options.success(true);
+        for (var i = 0; i < viewTypes.length; i++) {
+            for (var k in this[viewTypes[i]]) {
+                this[viewTypes[i]][k].attach(this.$('[' + this.attributeNameSpace + '-view-id="' + this[viewTypes[i]][k].cid + '"]'), {
+                    error: options.error,
+                    success: function () {
+                        loaded++;
+                        if (loaded === expected) {
+                            self.trigger(self.eventNameSpace + ':itemViews:attached');
+                            options.success(true);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
-        options.success(true);
-        this.trigger(this.eventNameSpace + ':itemViews:attached');
     },
 
     getItemViewOptions: function (type, model, collection, options) {
@@ -199,7 +215,7 @@ var CollectionView = View.extend({
     },
 
     createEmptyView: function (View, collection) {
-        var view = new View(thid.getItemViewOptions('emptyView', null, collection, {}));
+        var view = new View(this.getItemViewOptions('emptyView', null, collection, {}));
         this._emptyViews[collection.cid] = view;
         return view;
     },
@@ -216,7 +232,8 @@ var CollectionView = View.extend({
         this.listenTo(collection, 'reset', this._collectionReset, this);
     },
 
-    _addItemView: function (model, collectionDef, options) {
+    _addItemView: function (model, collection, options) {
+        var collectionDef = this._findCollection(collection);
         var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
         var self = this;
         options = setOptions(options);
@@ -238,14 +255,14 @@ var CollectionView = View.extend({
             }));
         }
 
-        if (this._emptyViews[collectionDef.cid] && this._emptyViews[collectionDef.cid].emptyViewShown) {
-            this.removeEmptyView($target, this._emptyViews[collectionDef.collection.cid], _.extend(getErrorOption(options), {
+        if (this._emptyViews[collection.cid] && this._emptyViews[collection.cid].emptyViewShown) {
+            this.removeEmptyView($target, this._emptyViews[collection.cid], _.extend(getErrorOption(options), {
                 success: function (result) {
-                    addItemView($target, model, collectionDef.collection);
+                    addItemView($target, model, collection);
                 }
             }));
         } else {
-            addItemView($target, model, collectionDef.collection);
+            addItemView($target, model, collection);
         }
     },
 
@@ -440,8 +457,8 @@ var CollectionView = View.extend({
                 }
             }));
         } else {
-            if (this._emptyViews[collectionDef.colleciton.cid]) {
-                return options.success(this._emptyViews[collectionDef.colleciton.cid]);
+            if (this._emptyViews[collectionDef.collection.cid]) {
+                return options.success(this._emptyViews[collectionDef.collection.cid]);
             }
 
             this.getEmptyView(collection, _.extend(getErrorOption(options), {

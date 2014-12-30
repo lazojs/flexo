@@ -143,9 +143,10 @@ describe('Flexo Base View', function () {
         it('should get the html string for a view', function (done) {
             view.getHtml({
                 success: function (html) {
-                    var regex = /<div data-foo="bar" flexo-view-id="view[0-9]+">Hi! My name is Jason Strimpel <div flexo-view="foo"><div flexo-view-id="view[0-9]+">I am the child view!!!<div flexo-view="bar"><div flexo-view-id="view[0-9]+">I am the grandchild view!!!<\/div><\/div> Even more text.<\/div><\/div> More text.<\/div>/
+                    var regex = /<div data-foo="bar" flexo-view-id="view[0-9]+">Hi! My name is Jason Strimpel <div flexo-view="foo"><div flexo-view-id="view[0-9]+">I am the child view!!!<div flexo-view="bar"><div flexo-view-id="view[0-9]+">I am the grandchild view!!!<\/div><\/div> Even more text.<\/div><\/div> More text.<\/div>/;
                     var match = html.match(regex);
 
+                    expect(match).to.not.be.null;
                     expect(match.length).to.be.equal(1);
                     expect(match.index).to.be.equal(0);
                     done();
@@ -161,9 +162,10 @@ describe('Flexo Base View', function () {
         it('should get the inner html string for a view', function (done) {
             view.getInnerHtml({
                 success: function (html) {
-                    var regex = /Hi! My name is Jason Strimpel <div flexo-view="foo"><div flexo-view-id="view[0-9]+">I am the child view!!!<div flexo-view="bar"><div flexo-view-id="view[0-9]+">I am the grandchild view!!!<\/div><\/div> Even more text.<\/div><\/div> More text./
+                    var regex = /Hi! My name is Jason Strimpel <div flexo-view="foo"><div flexo-view-id="view[0-9]+">I am the child view!!!<div flexo-view="bar"><div flexo-view-id="view[0-9]+">I am the grandchild view!!!<\/div><\/div> Even more text.<\/div><\/div> More text./;
                     var match = html.match(regex);
 
+                    expect(match).to.not.be.null;
                     expect(match.length).to.be.equal(1);
                     expect(match.index).to.be.equal(0);
                     done();
