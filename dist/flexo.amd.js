@@ -2,7 +2,7 @@
 // ----------------------------------
 // v0.0.1
 //
-// Copyright (c)2014 Jason Strimpel
+// Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
 define(['underscore', 'backbone'], function (_, Backbone) {
 
