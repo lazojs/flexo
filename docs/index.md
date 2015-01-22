@@ -453,8 +453,350 @@ view.getChildOptions({ foo: 1 });
 
 ## FlexoCollectionView
 
-`flexo.CollectionView` extends [flexo.View](#FlexoView).
+`flexo.CollectionView` extends [flexo.View](#flexoview).
+
+```js
+var View = flexo.CollectionView.extend({
+
+    template: '<ul flexo-collection-target="collection"></ul>',
+
+    collection: new Backbone.Collection([
+        { name: 'Jimmy' },
+        { name: 'Robert' },
+        { name: 'John' },
+        { name: 'John Paul' }
+    ])
+
+    itemView: flexo.View.extend({
+        tagName: 'li',
+        template: '<%=name%>'
+    })
+
+});
+
+var view = new View();
+```
+
+### `constructor(options)`
+
+Creates a new `FlexoCollectionView` instance.
+You may override it if you need to perform some initialization while the instance is created.
+The `FlexoCollectionView` constructor must be called though. If the view defines an initialize function, it will be
+called when the view is first created.
+
+#### Arguments
+1. `options` *(Object)*: By default flexo will merge all options with the created instance. See [`augment`](#augment) for further details.
+
+#### Example
+```js
+var view = new flexo.CollectionView({ name: 'my-awesome-view' });
+console.log(view.name); // logs 'my-awesome-view'
+```
+
+### `getCollection(nameCollection, options)`
+
+Gets a collection by name or returns collection itself.
+
+*Note - Called as part of `getInnerHtml`. Should not be overridden.*
+
+#### Arguments
+1. `nameCollection` *(Object or String)*: A collection instance or the name of a collection to resolve.
+2. `options` *(Object)*: Options for getCollection.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.getCollection('collectionName', {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `resolveCollection(name, options)`
+
+Resolves a collection by name. Called by `getCollection`.
+
+#### Arguments
+1. `name` *(String)*: The name of a collection to resolve.
+2. `options` *(Object)*: Options for resolveCollection.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.resolveCollection('collectionName', {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `getItemView(model, collection, options)`
+
+Resolves an item view by model and collection. Called indirectly by `getInnerHtml` as needed
+during rendering.
+
+#### Arguments
+1. `model` *(Object)*: The model for the item view.
+2. `collection` *(Object)*: The collection to which the model for the item view belongs.
+3. `options` *(Object)*: Options for getItemView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.getItemView(model, collection, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `getEmptyView(collection, options)`
+
+Resolves an empty view by collection. Called indirectly by `getInnerHtml` as needed
+during rendering.
+
+#### Arguments
+1. `collection` *(Object)*: The collection to which the empty view belongs.
+2. `options` *(Object)*: Options for getEmptyView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.getEmptyView(collection, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `addItemView($target, view, options)`
+
+Resolves an empty view by collection. Called indirectly by `getInnerHtml` as needed
+during rendering and when a model is added to a collection.
+
+#### Arguments
+1. `$target` *(Object)*: jQuery object to which to add the item view.
+2. `view` *(Object)*: The view instance to add.
+3. `options` *(Object)*: Options for addItemView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.addItemView($target, view, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `addEmptyView($target, view, options)`
+
+Resolves an empty view by collection. Called indirectly by `getInnerHtml` as needed
+during rendering and when a collection is empty.
+
+#### Arguments
+1. `$target` *(Object)*: jQuery object to which to add the empty view.
+2. `view` *(Object)*: The view instance to add.
+3. `options` *(Object)*: Options for addEmptyView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.addEmptyView($target, view, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `removeEmptyView($target, view, options)`
+
+Called when a model is added to an empty collection.
+
+#### Arguments
+1. `$target` *(Object)*: jQuery object to which to remove the empty view.
+2. `view` *(Object)*: The view instance to remove.
+3. `options` *(Object)*: Options for removeEmptyView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.removeEmptyView($target, view, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `removeItemView($target, view, options)`
+
+Called when a model is removed from a collection.
+
+#### Arguments
+1. `$target` *(Object)*: jQuery object to which to remove the item view.
+2. `view` *(Object)*: The view instance to remove.
+3. `options` *(Object)*: Options for removeItemView.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.removeItemView($target, view, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `renderCollection(collection, options)`
+
+Renders a collection. Called indirectly by `getInnerHtml` as needed
+during rendering.
+
+#### Arguments
+1. `collection` *(Object)*: The collection to be rendered.
+2. `options` *(Object)*: Options for renderCollection.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.renderCollection($target, view, {
+    success: function () {
+        // do something after child view is added to the DOM
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `attachItemEmptyViews(options)`
+
+Attaches item and empty views using view cid values in markup data attributes.
+
+*Note - Called by `attach`.*
+
+#### Arguments
+1. `options` *(Object)*: Options for attachItemEmptyViews. Passed by `attach`.
+    - `success` *(Function)*: Function to call when successful.
+    - `error` *(Function)*: Function to call if there is a failure.
+
+#### Example
+```js
+var view = new flexo.View();
+view.attachItemEmptyViews({
+    success: function () {
+        // do something after async attachment is complete
+    },
+    error: function (err) {
+        throw err;
+    }
+});
+```
+
+### `getItemViewOptions(type, [model], collection, options)`
+
+Gets the options for item and empty views. Called by `createItemView` and `createEmptyView`.
+
+#### Arguments
+1. `type` *(String)*: The type of view, 'emptyView' or 'itemView'.
+2. `model` *(Object)*: The model associated with the item view.
+3. `collection` *(Object)*: The collection associated with the item or empty view.
+4. `options` *(Object)*: Options for getItemViewOptions.
+
+#### Example
+```js
+var view = new flexo.View();
+view.getItemViewOptions('itemView', model, collection, { foo: true });
+```
+
+### `createItemView(View, model, collection)`
+
+Gets the options for item and empty views. Called by `createItemView` and `createEmptyView`.
+
+#### Arguments
+1. `View` *(Function)*: Item view constructor.
+2. `model` *(Object)*: The model associated with the item view.
+3. `collection` *(Object)*: The collection associated with the item view.
+
+#### Example
+```js
+var view = new flexo.View();
+var itemView = view.createItemView(View, model, collection);
+```
+
+### `createEmptyView(View, collection)`
+
+Gets the options for item and empty views. Called by `createEmptyView` and `createEmptyView`.
+
+#### Arguments
+1. `View` *(Function)*: EMpty view constructor.
+2. `collection` *(Object)*: The collection associated with the empty view.
+
+#### Example
+```js
+var view = new flexo.View();
+var emptyView = view.createEmptyView(View, model, collection);
+```
 
 ## Events
+In addition to `on` functions, e.g., `onRemove` Flexo triggers events. The default namespace for these events is 'flexo'.
+The default event namespace can be chnaged by setting the `eventNameSpace` property of a view.
+
+* 'flexo:rendered' - when a view is rendered
+* 'flexo:attached' - when a view is attached
+* 'flexo:removed' - when a view is removed
+* 'flexo:child:added' - when a child view is added
+* 'flexo:itemView:added' - when an item view is added
+* 'flexo:emptyView:added' - when an empty view is added
+* 'flexo:itemView:removed' - when an item view is removed
+* 'flexo:emptyView:removed' - when an empty view is removed
+* 'flexo:collection:rendered' - when a collection is rendered
+* 'flexo:itemViews:attached' - when item views are attached
+
 
 ## Attributes
+Flexo adds sttibutes to the view markup such as a view's cid. The default namespace for these attributes is 'flexo'.
+The default attribute namespace can be chnaged by setting the `attributeNameSpace` property of a view.

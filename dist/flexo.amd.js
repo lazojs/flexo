@@ -1,6 +1,6 @@
 // Flexo, Nah, I'm just messin' with ya; you're all right.
 // ----------------------------------
-// v0.0.1
+// v0.1.0
 //
 // Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
@@ -97,7 +97,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
                     self.$el.html(html);
                     self.afterRender();
                     options.success(html);
-                    self.trigger('flexo:rendered', self);
+                    self.trigger(self.eventNameSpace + ':rendered', self);
                 }
             }));
         },
