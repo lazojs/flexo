@@ -782,5 +782,21 @@ var emptyView = view.createEmptyView(View, model, collection);
 ```
 
 ## Events
+In addition to `on` functions, e.g., `onRemove` Flexo triggers events. The default namespace for these events is 'flexo'.
+The default event namespace can be chnaged by setting the `eventNameSpace` property of a view.
+
+* 'flexo:rendered' - when a view is rendered
+* 'flexo:attached' - when a view is attached
+* 'flexo:removed' - when a view is removed
+* 'flexo:child:added' - when a child view is added
+* 'flexo:itemView:added' - when an item view is added
+* 'flexo:emptyView:added' - when an empty view is added
+* 'flexo:itemView:removed' - when an item view is removed
+* 'flexo:emptyView:removed' - when an empty view is removed
+* 'flexo:collection:rendered' - when a collection is rendered
+* 'flexo:itemViews:attached' - when item views are attached
+
 
 ## Attributes
+Flexo adds sttibutes to the view markup such as a view's cid. The default namespace for these attributes is 'flexo'.
+The default attribute namespace can be chnaged by setting the `attributeNameSpace` property of a view.

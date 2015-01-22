@@ -64,4 +64,5 @@ module.exports = function (grunt) {
     grunt.registerTask('default', [
         'preprocess:namespaced', 'concat:namespaced', 'preprocess:amd', 'concat:amd', 'preprocess:commonjs', 'concat:commonjs'
     ]);
+    grunt.registerTask('test', ['mocha:test']);
 };

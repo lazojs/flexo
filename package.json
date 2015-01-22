@@ -1,7 +1,7 @@
 {
   "name": "flexo.js",
   "description": "client-server backbone views with async rendering life cycles",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "dist/flexo.common.js",
   "private": false,
   "keywords": [
@@ -14,7 +14,7 @@
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/jstrimpel/flexo/blob/master/license.txt"
+      "url": "https://github.com/lazojs/flexo/blob/master/license.txt"
     }
   ],
   "author": {
@@ -22,13 +22,16 @@
     "email": "jstrimpel@gmail.com"
   },
   "bugs": {
-    "web": "https://github.com/jstrimpel/flexo/issues"
+    "web": "https://github.com/lazojs/flexo/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jstrimpel/flexo.git"
+    "url": "https://github.com/lazojs/flexo.git"
   },
-  "github": "https://github.com/jstrimpel/flexo",
+  "github": "https://github.com/lazojs/flexo",
+  "scripts": {
+    "test": "grunt test"
+  },
   "devDependencies": {
     "grunt": "~0.4.0",
     "grunt-preprocess": "3.0.1",
@@ -40,16 +43,6 @@
     "underscore": "1.7.0",
     "sinon": "1.12.2",
     "sinon-chai": "2.6.0"
-  },
-  "volo": {
-    "url": "https://raw.github.com/jstrimpel/flexo/master/dist/flexo.js"
-  },
-  "jam": {
-    "main": "flexo.js",
-    "include": [
-      "flexo.js",
-      "readme.md"
-    ]
   },
   "maintainers": [
     {

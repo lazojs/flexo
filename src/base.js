@@ -29,7 +29,7 @@ var View = Backbone.View.extend({
                 self.$el.html(html);
                 self.afterRender();
                 options.success(html);
-                self.trigger('flexo:rendered', self);
+                self.trigger(self.eventNameSpace + ':rendered', self);
             }
         }));
     },
