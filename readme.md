@@ -24,4 +24,4 @@ solution and your application.
 
 ## API
 There are default implementations for all methods. These implementations can be overwritten to meet your
-needs. [View Documentation](blob/master/docs/index.md)
+needs. [View Documentation](docs/index.md)
