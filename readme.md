@@ -1,4 +1,9 @@
-# flexo
+<h1>
+  flexo
+  <a title='Build Status' href="https://travis-ci.org/lazojs/flexo">
+    <img src='https://travis-ci.org/lazojs/flexo.svg' />
+  </a>
+</h1>
 
 > Nah, I'm just messin' with ya; you're all right.
 
