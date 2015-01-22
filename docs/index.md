@@ -1,3 +1,9 @@
+* [flexo.View](#flexoview)
+* [flexo.CollectionView](#flexocollectionview)
+* [Events](#events)
+* [Attributes](#attributes)
+
+
 ## FlexoView
 
 `flexo.View` extends [Backbone.View](http://backbonejs.org/#View).
@@ -798,5 +804,5 @@ The default event namespace can be chnaged by setting the `eventNameSpace` prope
 
 
 ## Attributes
-Flexo adds sttibutes to the view markup such as a view's cid. The default namespace for these attributes is 'flexo'.
+Flexo adds attributes to the view markup such as a view's cid. The default namespace for these attributes is 'flexo'.
 The default attribute namespace can be chnaged by setting the `attributeNameSpace` property of a view.
