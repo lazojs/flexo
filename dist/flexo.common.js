@@ -1,6 +1,6 @@
 // Flexo, Nah, I'm just messin' with ya; you're all right.
 // ----------------------------------
-// v0.1.0
+// v0.1.1
 //
 // Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
@@ -110,10 +110,10 @@ var View = Backbone.View.extend({
         this.setElement(el);
         this.onAttach();
         this.trigger(this.eventNameSpace + ':attached', this);
-        this.attachChildViews(options);
+        this.attachChildren(options);
     },
 
-    attachChildViews: function (options) {
+    attachChildren: function (options) {
         var expected = _.size(this.children);
         var attached = 0;
         options = setOptions(options);

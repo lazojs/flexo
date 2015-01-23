@@ -78,7 +78,7 @@ describe('Flexo Base View', function () {
         });
     });
 
-    describe('#attach(), #attachChildViews()', function () {
+    describe('#attach(), #attachChildren()', function () {
         it('should attach the view and children', function (done) {
 
             function clickListen(currentView, callback) {
