@@ -82,7 +82,7 @@ var View = flexo.View.extend({
 
 Attaches view to the `el` parameter. Useful for attaching views to server rendered markup.
 
-*Note - If overridden it must call `attachChildViews`.*
+*Note - If overridden it must call `attachChildChildren`.*
 
 #### Arguments
 1. `el` *(Object)*: DOM element.
@@ -103,21 +103,21 @@ view.attach(document.querySelector('body'), {
 });
 ```
 
-### `attachChildViews(options)`
+### `attachChildChildren(options)`
 
 Attaches child views using view cid values in markup data attributes.
 
 *Note - Called by `attach`.*
 
 #### Arguments
-1. `options` *(Object)*: Options for attachChildViews. Passed by `attach`.
+1. `options` *(Object)*: Options for attachChildChildren. Passed by `attach`.
     - `success` *(Function)*: Function to call when successful.
     - `error` *(Function)*: Function to call if there is a failure.
 
 #### Example
 ```js
 var view = new flexo.View();
-view.attachChildViews({
+view.attachChildChildren({
     success: function () {
         // do something after async attachment is complete
     },

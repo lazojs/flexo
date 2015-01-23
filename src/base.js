@@ -43,10 +43,10 @@ var View = Backbone.View.extend({
         this.setElement(el);
         this.onAttach();
         this.trigger(this.eventNameSpace + ':attached', this);
-        this.attachChildViews(options);
+        this.attachChildren(options);
     },
 
-    attachChildViews: function (options) {
+    attachChildren: function (options) {
         var expected = _.size(this.children);
         var attached = 0;
         options = setOptions(options);
