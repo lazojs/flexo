@@ -1,7 +1,7 @@
 {
   "name": "flexo.js",
   "description": "client-server backbone views with async rendering life cycles",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist/flexo.common.js",
   "private": false,
   "keywords": [
@@ -22,7 +22,7 @@
     "email": "jstrimpel@gmail.com"
   },
   "bugs": {
-    "web": "https://github.com/lazojs/flexo/issues"
+    "url": "https://github.com/lazojs/flexo/issues"
   },
   "repository": {
     "type": "git",
