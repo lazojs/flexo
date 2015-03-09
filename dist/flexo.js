@@ -634,7 +634,7 @@ var flexo = (function (global, Backbone, _) {
         },
     
         _collectionAdd: function (model, collection) {
-            this._addItemView(model, collectionDef, function (err, result) {
+            this._addItemView(model, collection, function (err, result) {
                 if (err) {
                     throw err;
                 }

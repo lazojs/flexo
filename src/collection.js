@@ -270,7 +270,7 @@ var CollectionView = View.extend({
     },
 
     _collectionAdd: function (model, collection) {
-        this._addItemView(model, collectionDef, function (err, result) {
+        this._addItemView(model, collection, function (err, result) {
             if (err) {
                 throw err;
             }
