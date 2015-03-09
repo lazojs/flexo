@@ -227,6 +227,9 @@ var CollectionView = View.extend({
     _emptyViews: null,
 
     _listenToCollection: function (collection) {
+        this.stopListening(collection, 'add', this._collectionAdd, this);
+        this.stopListening(collection, 'remove', this._collectionRemove, this);
+        this.stopListening(collection, 'reset', this._collectionReset, this);
         this.listenTo(collection, 'add', this._collectionAdd, this);
         this.listenTo(collection, 'remove', this._collectionRemove, this);
         this.listenTo(collection, 'reset', this._collectionReset, this);
@@ -267,7 +270,6 @@ var CollectionView = View.extend({
     },
 
     _collectionAdd: function (model, collection) {
-        var collectionDef = this._findCollection(collection);
         this._addItemView(model, collectionDef, function (err, result) {
             if (err) {
                 throw err;
