@@ -1,6 +1,6 @@
 // Flexo, Nah, I'm just messin' with ya; you're all right.
 // ----------------------------------
-// v0.2.3
+// v0.2.5
 //
 // Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
@@ -829,7 +829,7 @@ define(['underscore', 'backbone'], function (_, Backbone) {
     
                 this.getEmptyView(collection, _.extend(getErrorOption(options), {
                     success: function (EmptyView) {
-                        options.success(self.createEmptyView(EmptyView, collection));
+                        options.success(EmptyView ? self.createEmptyView(EmptyView, collection) : null);
                     }
                 }));
             }

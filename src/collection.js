@@ -465,7 +465,7 @@ var CollectionView = View.extend({
 
             this.getEmptyView(collection, _.extend(getErrorOption(options), {
                 success: function (EmptyView) {
-                    options.success(self.createEmptyView(EmptyView, collection));
+                    options.success(EmptyView ? self.createEmptyView(EmptyView, collection) : null);
                 }
             }));
         }
