@@ -270,7 +270,7 @@ var CollectionView = View.extend({
     },
 
     _collectionAdd: function (model, collection) {
-        this._addItemView(model, collectionDef, function (err, result) {
+        this._addItemView(model, collection, function (err, result) {
             if (err) {
                 throw err;
             }
@@ -465,7 +465,7 @@ var CollectionView = View.extend({
 
             this.getEmptyView(collection, _.extend(getErrorOption(options), {
                 success: function (EmptyView) {
-                    options.success(self.createEmptyView(EmptyView, collection));
+                    options.success(EmptyView ? self.createEmptyView(EmptyView, collection) : null);
                 }
             }));
         }
