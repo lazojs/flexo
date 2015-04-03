@@ -244,8 +244,9 @@ var CollectionView = View.extend({
         function addItemView($target, model, collection) {
             self._getEmptyItemViewInstance(model, collection, _.extend(getErrorOption(options), {
                 success: function (itemView) {
-                    itemView.render(_.extend(getErrorOption(options), {
+                    itemView.getInnerHtml(_.extend(getErrorOption(options), {
                         success: function (html) {
+                            itemView.$el.html(html);
                             self.addItemView($target, itemView, _.extend(getErrorOption(options), {
                                 success: function (result) {
                                     options.success(result);
@@ -270,11 +271,11 @@ var CollectionView = View.extend({
     },
 
     _collectionAdd: function (model, collection) {
-        this._addItemView(model, collection, function (err, result) {
+        this._addItemView(model, collection, { error: function (err, result) {
             if (err) {
                 throw err;
             }
-        });
+        }});
     },
 
     _collectionRemove: function (model, collection) { // TODO: check if there are no more items in the collection
@@ -287,7 +288,7 @@ var CollectionView = View.extend({
         this.removeItemView($target, view, _.extend(getErrorOption(options), {
             success: function (result) {
                 if (!collection.length) {
-                    this._getEmptyItemViewInstance(null, collection, _.extend(getErrorOption(options), {
+                    self._getEmptyItemViewInstance(null, collection, _.extend(getErrorOption(options), {
                         success: function (emptyView) {
                             if (emptyView) {
                                 self.addEmptyView($target, emptyView, _.extend(getErrorOption(options), {
