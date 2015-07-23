@@ -433,17 +433,28 @@ var flexo = (function (global, Backbone, _) {
         },
     
         addItemView: function ($target, view, options) {
+            var self = this;
             options = setOptions(options);
             $target.append(view.$el);
-            options.success(view);
-            this.trigger(this.eventNameSpace + ':itemView:added', view);
+            view.attach(view.$el[0], {
+                error: options.error,
+                success: function () {
+                    options.success(view);
+                    self.trigger(self.eventNameSpace + ':itemView:added', view);
+                }
+            });
         },
     
         addEmptyView: function ($target, view, options) {
             options = setOptions(options);
             $target.append(view.$el);
-            options.success(view);
-            this.trigger(this.eventNameSpace + ':emptyView:added', view);
+            view.attach(view.$el[0], {
+                error: options.error,
+                success: function () {
+                    options.success(view);
+                    self.trigger(self.eventNameSpace + ':emptyView:added', view);
+                }
+            });
         },
     
         removeEmptyView: function ($target, view, options) {
