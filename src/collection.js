@@ -237,7 +237,7 @@ var CollectionView = View.extend({
 
     _addItemView: function (model, collection, options) {
         var collectionDef = this._findCollection(collection);
-        var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]');
+        var $target = this.$('[' + this.attributeNameSpace + '-collection-target="' + collectionDef.name + '"]').first();
         var self = this;
         options = setOptions(options);
 
