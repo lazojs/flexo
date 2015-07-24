@@ -1,6 +1,6 @@
 // Flexo, Nah, I'm just messin' with ya; you're all right.
 // ----------------------------------
-// v0.2.9
+// v0.2.10
 //
 // Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
