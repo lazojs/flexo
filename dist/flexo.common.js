@@ -1,6 +1,6 @@
 // Flexo, Nah, I'm just messin' with ya; you're all right.
 // ----------------------------------
-// v0.2.7
+// v0.2.9
 //
 // Copyright (c)2015 Jason Strimpel
 // Distributed under MIT license
@@ -445,6 +445,7 @@ var CollectionView = View.extend({
     },
 
     addEmptyView: function ($target, view, options) {
+        var self = this;
         options = setOptions(options);
         $target.append(view.$el);
         view.attach(view.$el[0], {

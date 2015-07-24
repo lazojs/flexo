@@ -82,6 +82,7 @@ var CollectionView = View.extend({
     },
 
     addEmptyView: function ($target, view, options) {
+        var self = this;
         options = setOptions(options);
         $target.append(view.$el);
         view.attach(view.$el[0], {

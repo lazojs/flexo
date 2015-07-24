@@ -1,7 +1,7 @@
 {
   "name": "flexo.js",
   "description": "client-server backbone views with async rendering life cycles",
-  "version": "0.2.8",
+  "version": "0.2.10",
   "main": "dist/flexo.common.js",
   "private": false,
   "keywords": [
