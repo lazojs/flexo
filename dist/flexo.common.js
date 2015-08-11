@@ -685,8 +685,8 @@ var CollectionView = View.extend({
     },
 
     _addCollection: function (name, collection) {
+        this._listenToCollection(collection);
         if (!this._findCollection(collection)) {
-            this._listenToCollection(collection);
             this._collections.push({ name: name, collection: collection });
         }
     },
